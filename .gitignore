@@ -12,3 +12,6 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+!klipler/oyun_kayitlari/
+klipler/oyun_kayitlari/*
+!klipler/oyun_kayitlari/.gitkeep

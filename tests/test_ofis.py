@@ -265,3 +265,16 @@ def test_turkce_gorsel_kelimeleri_cevrilir_ve_buyuk_harf(monkeypatch, tmp_path):
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg yok")
+def test_oyun_kaydindan_farkli_anlar_secilir(tmp_path, monkeypatch):
+    klasor = tmp_path / "oyun"
+    klasor.mkdir()
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=30",
+                    "-t", "60", str(klasor / "kayit.mp4")], check=True)
+    monkeypatch.setattr(gorsel, "KOK", tmp_path)
+    k = {"id": "gta_en", "oyun_kayit_klasoru": "oyun", "oyun_sahne_adedi": 5}
+    sahneler = gorsel.oyun_kaydi_sahneleri(k, "a")
+    assert len(sahneler) == 5 and len({s["bas"] for s in sahneler}) == 5
+    assert all(s["tur"] == "video" for s in sahneler)

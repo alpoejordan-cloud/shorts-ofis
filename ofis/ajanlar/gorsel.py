@@ -222,13 +222,57 @@ def yerel_gorseller(k: dict[str, Any]) -> list[Path]:
     return [p for p in sorted(klasor.iterdir()) if p.suffix.lower() in RESIM_UZANTI | VIDEO_UZANTI]
 
 
+# ---- Kendi oyun kaydın (ör. GTA gameplay) ----
+
+def oyun_kaydi_sahneleri(k: dict[str, Any], tohum: str, adet: int | None = None) -> list[dict[str, Any]]:
+    """klipler/oyun_kayitlari gibi bir klasördeki uzun kayıtlardan, daha önce kullanılmamış
+    rastgele anlar seçer. Her an ayrı bir sahne olur (kesme başına farklı görüntü)."""
+    klasor_adi = k.get("oyun_kayit_klasoru")
+    if not klasor_adi:
+        return []
+    klasor = KOK / klasor_adi
+    dosyalar = sorted(p for p in klasor.glob("*") if p.suffix.lower() in VIDEO_UZANTI) if klasor.exists() else []
+    if not dosyalar:
+        return []
+    from .kurgu import olcu
+
+    kayit = VERI / "oyun_kullanilan.json"
+    kullanilan = json.loads(kayit.read_text()) if kayit.exists() else {}
+    rnd = random.Random(tohum)
+    adet = adet or int(k.get("oyun_sahne_adedi", 16))
+    pencere = 4.0
+    sahneler = []
+    for _ in range(adet * 4):
+        if len(sahneler) >= adet:
+            break
+        dosya = rnd.choice(dosyalar)
+        sure = olcu(str(dosya))[2]
+        if sure < pencere * 2:
+            continue
+        bas = round(rnd.uniform(5.0, max(sure - pencere - 5.0, 5.0)), 1)
+        dilim = f"{dosya.name}:{int(bas // pencere)}"
+        if dilim in kullanilan.get(k["id"], []):
+            continue
+        kullanilan.setdefault(k["id"], []).append(dilim)
+        sahneler.append({"tur": "video", "yol": str(dosya), "bas": bas})
+    # kayıt tükenirse baştan kullanmaya izin ver
+    if len(sahneler) < adet // 2:
+        kullanilan[k["id"]] = []
+    kayit.write_text(json.dumps(kullanilan))
+    return sahneler
+
+
 def topla(is_: Is, k: dict[str, Any]) -> None:
     sahneler: list[dict[str, Any]] = []
     lisans: list[str] = []
     gorsel_klasoru = is_.klasor / "gorseller"
     gorsel_klasoru.mkdir(exist_ok=True)
 
-    if is_.veri.get("mod") == "izinli_klip":
+    oyun_sahneleri = oyun_kaydi_sahneleri(k, is_.id)
+    if oyun_sahneleri and is_.veri.get("mod") != "izinli_klip":
+        sahneler.extend(oyun_sahneleri)
+        lisans.append("Oyun görüntüsü: kanal sahibinin kendi oyun kaydı")
+    elif is_.veri.get("mod") == "izinli_klip":
         hedef = gorsel_klasoru / ("klip" + Path(is_.veri["klip_yolu"]).suffix)
         shutil.copy2(is_.veri["klip_yolu"], hedef)
         sahneler.append({"tur": "video", "yol": str(hedef), "en_uzun": is_.veri.get("en_uzun_sn", 30),

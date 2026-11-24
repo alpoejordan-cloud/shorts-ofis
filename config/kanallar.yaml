@@ -72,6 +72,8 @@ kanallar:
     ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne
     ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"
     yerel_gorsel_adedi: 3       # gorseller/gta_en/ klasörüne kendi koyduğun görsellerden eklenecek sayı
+    oyun_kayit_klasoru: klipler/oyun_kayitlari   # kendi GTA kayıtların (.mp4); varsa her sahne buradan gelir
+    oyun_sahne_adedi: 16
     trend:
       youtube: {bolge: US, kategori: 20}
       google_trends: {bolge: US}

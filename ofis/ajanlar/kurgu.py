@@ -131,7 +131,9 @@ def sahne_komutu(sahne: dict[str, Any], sure: float, cikis: str, hareket: str = 
         return ["-i", sahne["yol"], "-filter_complex", filtre, "-map", "[v]", "-frames:v", str(kare), *KODLA, cikis]
     # video: farklı tekrarlarda farklı yerden başla, yavaş itme veya kaydırma
     baslangic = 0.0
-    if kaynak_sure > sure + 1:
+    if sahne.get("bas") is not None:  # oyun kaydı gibi uzun kaynaklarda seçilmiş an
+        baslangic = max(0.0, min(float(sahne["bas"]), max(kaynak_sure - sure, 0.0)))
+    elif kaynak_sure > sure + 1:
         baslangic = ((tekrar * 3.7) + (hash(sahne["yol"]) % 5)) % max(kaynak_sure - sure, 0.1)
     if hareket in ("yakin", "uzak"):
         hiz = 0.10 / kare

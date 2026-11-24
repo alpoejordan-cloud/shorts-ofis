@@ -262,6 +262,15 @@ def test_turkce_gorsel_kelimeleri_cevrilir_ve_buyuk_harf(monkeypatch, tmp_path):
     assert "İÇİN" in yol.read_text(encoding="utf-8") and "SINAV" in yol.read_text(encoding="utf-8")
 
 
+def test_acilis_notu_ilk_iki_saniyede(tmp_path):
+    yol = tmp_path / "n.ass"
+    seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(seslendirme.tahmini_zamanlar("one two", 1.0)), yol,
+                        acilis_notu="Clip from @Dom's stream", toplam=3.0)
+    satir = [s for s in yol.read_text(encoding="utf-8").splitlines() if ",Not,," in s]
+    assert len(satir) == 1 and satir[0].startswith("Dialogue: 3,0:00:00.00,0:00:02.00,")
+    assert "Clip from @Dom's stream" in satir[0]
+
+
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

@@ -55,6 +55,9 @@ def klip_sec(k: dict[str, Any]) -> dict[str, Any] | None:
                         ad=y["ad"], url=y.get("kanal_url", "")
                     ),
                     "en_uzun_sn": y.get("en_uzun_sn", 30),
+                    # kampanyanın istediği bilgilendirme (ör. "Clip from @streamer's stream"), ilk 2 sn ekranda
+                    "acilis_notu": str(y.get("acilis_notu") or "").strip(),
+                    "kampanya": y.get("izin_belgesi", ""),
                 })
     return random.choice(adaylar) if adaylar else None
 

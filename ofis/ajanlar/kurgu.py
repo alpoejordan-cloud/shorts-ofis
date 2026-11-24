@@ -278,7 +278,8 @@ def altyazi_yenile(is_: Is, k: dict[str, Any], toplam: float) -> None:
         return
     kanca = is_.veri.get("kanca_metni") or (kanca_duzelt(is_.veri) if is_.veri.get("baslik") else None)
     seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass",
-                        k.get("altyazi"), kanca=kanca, toplam=toplam, dil=k.get("dil", "en"))
+                        k.get("altyazi"), kanca=kanca, toplam=toplam, dil=k.get("dil", "en"),
+                        acilis_notu=is_.veri.get("acilis_notu") or None)
 
 
 def kurgula(is_: Is, k: dict[str, Any]) -> None:

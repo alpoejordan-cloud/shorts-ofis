@@ -16,3 +16,4 @@ izinli_yayincilar:
     kanallar: [gta_en, gta_tr]
     klasor: klipler/ornek_yayinci
     kredi_metni: "Klip: {ad} ({url}), yazılı izinle kullanılmıştır."
+    acilis_notu: ""             # kampanya isterse ilk 2 sn ekranda: örn "Clip from @ornek's stream"

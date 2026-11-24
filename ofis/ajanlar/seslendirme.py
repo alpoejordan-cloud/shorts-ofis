@@ -106,7 +106,8 @@ def _temiz(metin: str) -> str:
 
 
 def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
-            kanca: str | None = None, toplam: float | None = None, dil: str = "en") -> None:
+            kanca: str | None = None, toplam: float | None = None, dil: str = "en",
+            acilis_notu: str | None = None, acilis_sure: float = 2.0) -> None:
     """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
     altta ilerleme çubuğu."""
     _DIL["dil"] = dil
@@ -128,6 +129,8 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,7,4,2,70,70,{marj},1",
         f"Style: Kanca,{yazi},{kanca_boyut},&H00FFFFFF,&H000000FF,&H1E000000,&H00000000,-1,0,0,0,100,100,1,0,3,24,0,8,"
         "80,80,300,1",
+        "Style: Not,Arial,46,&H00FFFFFF,&H000000FF,&H40000000,&H00000000,-1,0,0,0,100,100,0,0,3,14,0,8,"
+        "90,90,120,1",
         "Style: Cubuk,Arial,10,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1",
         "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
@@ -162,6 +165,9 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
             metin = f"{{\\c{vurgu}}}" + " ".join(sozler)
         satirlar.append(f"Dialogue: 2,0:00:00.00,{_ass_zaman(kanca_sure)},Kanca,,0,0,0,,"
                         f"{{\\fad(0,250)\\t(0,140,\\fscx112\\fscy112)\\t(140,280,\\fscx100\\fscy100)}}{metin}")
+    if acilis_notu:  # kampanyanın zorunlu bilgilendirmesi: ilk saniyelerde, en üstte, büyük harfe çevrilmeden
+        temiz = acilis_notu.replace("{", "(").replace("}", ")").replace("\\", "/")
+        satirlar.append(f"Dialogue: 3,0:00:00.00,{_ass_zaman(acilis_sure)},Not,,0,0,0,,{{\\fad(0,200)}}{temiz}")
     if toplam:
         ms = int(toplam * 1000)
         cizim = "m 0 0 l 1080 0 l 1080 14 l 0 14"

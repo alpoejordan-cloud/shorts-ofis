@@ -63,8 +63,9 @@ def reddit(altlar: list[str], adet: int = 15) -> list[dict[str, str]]:
             r = requests.get(f"https://www.reddit.com/r/{alt}/hot.json?limit={adet}", headers=UA, timeout=30)
             r.raise_for_status()
         except requests.RequestException as e:
-            log.warning("Reddit r/%s okunamadı: %s", alt, e)
-            continue
+            # Reddit izinsiz otomatik erişimi engelleyebiliyor; o zaman bu kaynak atlanır
+            log.warning("Reddit okunamadı (%s), bu çalışmada Reddit atlanıyor", e)
+            break
         for c in r.json().get("data", {}).get("children", []):
             d = c["data"]
             if d.get("stickied") or d.get("over_18"):

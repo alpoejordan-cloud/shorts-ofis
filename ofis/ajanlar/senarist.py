@@ -25,17 +25,51 @@ def format_sec(k: dict[str, Any], mod: str) -> str:
     return random.choice([f for f in formatlar if sayac.get(f, 0) == en_az])
 
 
-def dogrula(s: dict[str, Any], k: dict[str, Any]) -> list[str]:
+def senaryo_birlestir(s: dict[str, Any]) -> None:
+    """Küçük modeller tek paragrafta kısa yazıyor; cümle listesi isteyip birleştiriyoruz."""
+    cumleler = s.get("senaryo_cumleleri")
+    if isinstance(cumleler, list) and cumleler:
+        s["senaryo"] = " ".join(str(c).strip() for c in cumleler if str(c).strip())
+    s["senaryo"] = str(s.get("senaryo", "")).strip()
+
+
+def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> list[str]:
     sorunlar = []
     kelime = len(str(s.get("senaryo", "")).split())
     alt, ust = k.get("kelime_araligi", [60, 120])
-    if not (alt <= kelime <= ust):
+    if not (int(alt * tolerans) <= kelime <= int(ust * 1.15)):
         sorunlar.append(f"senaryo {kelime} kelime, {alt}-{ust} olmalı")
     if not s.get("baslik") or len(s["baslik"]) > 95:
         sorunlar.append("başlık boş ya da 95 karakterden uzun")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")
     return sorunlar
+
+
+def genislet(metin: str, k: dict[str, Any], fikir: dict[str, Any]) -> str:
+    """Kısa kalan senaryoyu, yeni bilgi uydurmadan, hedef uzunluğa getirir."""
+    alt, ust = k.get("kelime_araligi", [60, 120])
+    hedef = (alt + ust) // 2
+    sistem = (f"You expand YouTube Shorts narrations. Write in {DIL_ADI.get(k['dil'], k['dil'])}. "
+              "Do not invent facts or numbers. Respond with JSON only.")
+    kullanici = (f"Topic: {fikir.get('konu')}\nAngle: {fikir.get('aci', '')}\n\n"
+                 f"Narration ({len(metin.split())} words):\n{metin}\n\n"
+                 f"Rewrite it to about {hedef} words (between {alt} and {ust}). Add context, why it matters to the "
+                 "viewer, and one honest opinion. Keep the hook first and end with a question to the viewer.\n"
+                 'JSON: {"senaryo_cumleleri": ["sentence", "..."]}')
+    for _ in range(2):
+        try:
+            cevap = sor_json(sistem, kullanici, sicaklik=0.7)
+        except Exception as e:  # genişletme olmazsa eldeki metinle devam
+            log.warning("Genişletme başarısız: %s", e)
+            return metin
+        if isinstance(cevap, dict):
+            senaryo_birlestir(cevap)
+            if len(cevap["senaryo"].split()) > len(metin.split()):
+                metin = cevap["senaryo"]
+                if len(metin.split()) >= alt:
+                    break
+    return metin
 
 
 def yaz(is_: Is, k: dict[str, Any]) -> None:
@@ -65,7 +99,7 @@ Extra notes: {k.get('senarist_notu', '')}{klip_notu}
 
 JSON fields:
 - "baslik": title under 70 characters, include #shorts at the end
-- "senaryo": the narration text only, no stage directions, no emojis
+- "senaryo_cumleleri": a list of 7 to 9 narration sentences, EACH sentence 10 to 16 words long. Sentence 1 is the hook, the last one asks the viewer a question. Narration only, no stage directions, no emojis
 - "aciklama": 2-3 sentence description; list the sources at the end
 - "etiketler": 5-10 tags
 - "gorsel_kelimeler": 4-6 short ENGLISH search terms for stock footage matching the narration in order
@@ -74,6 +108,9 @@ JSON fields:
         s = sor_json(sistem, kullanici, sicaklik=0.85)
         if not isinstance(s, dict):
             continue
+        senaryo_birlestir(s)
+        if s["senaryo"] and len(s["senaryo"].split()) < k.get("kelime_araligi", [60, 120])[0]:
+            s["senaryo"] = genislet(s["senaryo"], k, fikir)
         sorunlar = dogrula(s, k)
         if not sorunlar:
             break

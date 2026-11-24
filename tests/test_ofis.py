@@ -156,3 +156,15 @@ def test_stok_anahtari_yoksa_yapay_zeka_tamamlar(monkeypatch):
     i = cekirdek.Is(kanal="finans_tr", veri={"gorsel_kelimeler": ["money", "bank"]})
     gorsel.topla(i, cekirdek.kanal("finans_tr"))
     assert len(i.veri["sahneler"]) == 5
+
+
+def test_kisa_senaryo_genisletilir(monkeypatch):
+    k = cekirdek.kanal("teknoloji_en")
+    kisa = {"baslik": "T #shorts", "senaryo_cumleleri": ["Short hook here.", "Second one."], "aciklama": "a",
+            "etiketler": ["x"], "gorsel_kelimeler": ["city"]}
+    uzun = {"senaryo_cumleleri": [" ".join(["word"] * 12) + "." for _ in range(8)]}
+    cevaplar = iter([kisa, uzun])
+    monkeypatch.setattr(senarist, "sor_json", lambda *a, **kw: next(cevaplar))
+    i = cekirdek.Is(kanal="teknoloji_en", veri={"konu": "AI", "kaynaklar": []})
+    senarist.yaz(i, k)
+    assert 70 <= len(i.veri["senaryo"].split()) <= 115

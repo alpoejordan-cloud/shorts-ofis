@@ -27,6 +27,7 @@ GECIS = 0.3
 GECIS_TURLERI = ["fade", "slideleft", "slideup", "smoothleft", "circleopen", "zoomin", "smoothup", "wipeleft"]
 HAREKETLER = ["yakin", "sag", "uzak", "sol", "yukari"]
 RENK = "eq=contrast=1.07:saturation=1.2:brightness=0.01,unsharp=5:5:0.45:5:5:0.0,vignette=angle=PI/5"
+SES_NORMAL = "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
 KODLA = ["-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", str(FPS)]
 
 
@@ -195,7 +196,8 @@ def sahne_komutu(sahne: dict[str, Any], sure: float, cikis: str, hareket: str = 
         return ["-i", sahne["yol"], "-filter_complex", filtre, "-map", "[v]", "-frames:v", str(kare), *KODLA, cikis]
     if sahne.get("yerlesim") == "yayinci":  # kampanya klibi: baştan, ses ile senkron, dikey düzen
         filtre = f"[0:v]fps={FPS},{dikey_yerlesim(en, boy, sahne.get('yuz'))},format=yuv420p[v]"
-        return ["-i", sahne["yol"], "-t", f"{sure:.2f}", "-filter_complex", filtre, "-map", "[v]", *KODLA, cikis]
+        return ["-ss", f"{float(sahne.get('baslangic', 0)):.2f}", "-i", sahne["yol"], "-t", f"{sure:.2f}",
+                "-filter_complex", filtre, "-map", "[v]", *KODLA, cikis]
     # video: farklı tekrarlarda farklı yerden başla, yavaş itme veya kaydırma
     baslangic = 0.0
     if sahne.get("bas") is not None:  # oyun kaydı gibi uzun kaynaklarda seçilmiş an
@@ -284,9 +286,11 @@ def final_komutu(sure: float, muzik: str | None, klip_sesi: tuple[str, float] | 
         sira += 1
     if len(karisim) > 1:
         ses_zinciri.append(f"{''.join(karisim)}amix=inputs={len(karisim)}:duration=first:normalize=0,"
-                           "alimiter=limit=0.95[a]")
+                           "alimiter=limit=0.95[k]")
     else:
-        ses_zinciri[-1] = ses_zinciri[-1].replace("[s0]", "[a]")
+        ses_zinciri[-1] = ses_zinciri[-1].replace("[s0]", "[k]")
+    # YouTube standardı: -14 LUFS, tepe -1.5 dB (videolar arası ses seviyesi tutarlı olur)
+    ses_zinciri.append(f"[k]{SES_NORMAL}[a]")
     filtre = "[0:v]ass=altyazi.ass[v];" + ";".join(ses_zinciri)
     return girisler + [
         "-filter_complex", filtre, "-map", "[v]", "-map", "[a]", "-t", f"{sure:.2f}",
@@ -365,7 +369,8 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
             if "yuz_kamerasi" not in is_.veri:
                 is_.veri["yuz_kamerasi"] = yuz_kamerasi_bul(str(Path(klip["yol"]).resolve()))
                 log.info("%s: yüz kamerası %s", is_.id, is_.veri["yuz_kamerasi"] or "bulunamadı, tam dikey kırpma")
-            klip = {**klip, "yerlesim": "yayinci", "yuz": is_.veri["yuz_kamerasi"]}
+            klip = {**klip, "yerlesim": "yayinci", "yuz": is_.veri["yuz_kamerasi"],
+                    "baslangic": float(is_.veri.get("klip_baslangic", 0))}
         plan = [{"sahne": klip, "tekrar": 0, "hareket": "yakin", "sure": sure, "gecis": "fade"}]
         if klip.get("orijinal_ses") and not is_.veri.get("yayinci_sesi"):
             klip_sesi =(str(Path(klip["yol"]).resolve()), float(klip["orijinal_ses"]))

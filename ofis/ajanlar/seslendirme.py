@@ -15,12 +15,32 @@ log = gunluk_al("seslendirme")
 HF = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
 
+KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
+KOKORO_DOSYALAR = ("kokoro-v1.0.int8.onnx", "voices-v1.0.bin")
+
+
+def kokoro_mu(ses_adi: str) -> bool:
+    """'kokoro:af_heart' biçimindeki sesler Kokoro-82M (Apache 2.0) ile üretilir; yalnız İngilizce."""
+    return ses_adi.startswith("kokoro:")
+
+
 def ses_yolu(ses_adi: str) -> Path:
+    if kokoro_mu(ses_adi):
+        return SESLER / KOKORO_DOSYALAR[0]
     return SESLER / f"{ses_adi}.onnx"
 
 
 def ses_indir(ses_adi: str) -> Path:
     """Örn. 'tr_TR-dfki-medium' -> tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx"""
+    if kokoro_mu(ses_adi):
+        for dosya in KOKORO_DOSYALAR:
+            hedef_k = SESLER / dosya
+            if not hedef_k.exists():
+                log.info("Kokoro modeli indiriliyor: %s", dosya)
+                r = requests.get(f"{KOKORO_URL}/{dosya}", timeout=600)
+                r.raise_for_status()
+                hedef_k.write_bytes(r.content)
+        return ses_yolu(ses_adi)
     hedef = ses_yolu(ses_adi)
     if hedef.exists() and Path(str(hedef) + ".json").exists():
         return hedef
@@ -46,7 +66,34 @@ def _ses_yukle(ses_adi: str):
     return _SES_ONBELLEK[ses_adi]
 
 
-def sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float = 1.0) -> float:
+def _kokoro_sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float) -> float:
+    import numpy as np
+
+    if "kokoro" not in _SES_ONBELLEK:
+        from kokoro_onnx import Kokoro
+
+        ses_indir(ses_adi)
+        _SES_ONBELLEK["kokoro"] = Kokoro(str(SESLER / KOKORO_DOSYALAR[0]), str(SESLER / KOKORO_DOSYALAR[1]))
+    ornekler, hz = _SES_ONBELLEK["kokoro"].create(metin, voice=ses_adi.split(":", 1)[1], speed=hiz, lang="en-us")
+    veri = (np.clip(ornekler, -1, 1) * 32767).astype(np.int16)
+    with wave.open(str(cikis), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(hz)
+        wf.writeframes(veri.tobytes())
+    return len(veri) / float(hz)
+
+
+def sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float = 1.0, yedek: str | None = None) -> float:
+    """Kokoro sesi istenirse onu dener, olmazsa yedek Piper sesine düşer."""
+    if kokoro_mu(ses_adi):
+        try:
+            return _kokoro_sentezle(metin, ses_adi, cikis, hiz)
+        except Exception as e:
+            if not yedek:
+                raise
+            log.warning("Kokoro çalışmadı (%s), yedek ses kullanılıyor: %s", e, yedek)
+            ses_adi = yedek
     ses = _ses_yukle(ses_adi)
     with wave.open(str(cikis), "wb") as wf:
         if hasattr(ses, "synthesize_wav"):  # piper-tts 1.3+
@@ -245,6 +292,28 @@ def tahmini_zamanlar(metin: str, sure: float) -> list[dict[str, Any]]:
     return sonuc
 
 
+def en_iyi_an(klip: Path, uzunluk: float) -> float:
+    """Klip izin verilen süreden uzunsa, ses enerjisinin (bağırma, kahkaha, patlama) en yoğun olduğu
+    `uzunluk` saniyelik pencerenin başlangıcını döner. Kısa kliplerde 0."""
+    import numpy as np
+
+    try:
+        dizi = ses_dizisi(klip)  # 16 kHz mono
+    except Exception:
+        return 0.0
+    toplam = len(dizi) / 16000
+    if toplam <= uzunluk + 2:
+        return 0.0
+    saniye = int(toplam)
+    rms = np.sqrt(np.array([np.mean(dizi[i * 16000:(i + 1) * 16000] ** 2) for i in range(saniye)]) + 1e-9)
+    # ani yükselişleri (tepki anları) ödüllendir: enerji + pozitif değişim
+    skor = rms + np.maximum(np.diff(rms, prepend=rms[0]), 0) * 2
+    pencere = int(uzunluk)
+    toplamlar = np.convolve(skor, np.ones(pencere), mode="valid")
+    en_iyi = int(np.argmax(toplamlar))
+    return float(max(0, en_iyi - 2))  # tepkiden önceki bağlam için 2 sn erken başla
+
+
 def klip_sesini_kullan(is_: Is, k: dict[str, Any]) -> None:
     """Yayıncı sesi modu: TTS yok; klibin kendi sesi ana ses olur, altyazı yayıncının konuşmasından çıkarılır."""
     import shutil
@@ -252,8 +321,12 @@ def klip_sesini_kullan(is_: Is, k: dict[str, Any]) -> None:
 
     ses_dosyasi = is_.klasor / "ses.wav"
     en_uzun = float(is_.veri.get("en_uzun_sn", 58))
-    subprocess.run([shutil.which("ffmpeg") or "ffmpeg", "-y", "-v", "error", "-i", is_.veri["klip_yolu"],
-                    "-t", f"{en_uzun:.2f}", "-vn", "-ac", "1", "-ar", "22050", str(ses_dosyasi)], check=True)
+    if "klip_baslangic" not in is_.veri:  # uzun klipte en hareketli anı seç
+        is_.veri["klip_baslangic"] = en_iyi_an(Path(is_.veri["klip_yolu"]), en_uzun)
+    bas = float(is_.veri["klip_baslangic"])
+    subprocess.run([shutil.which("ffmpeg") or "ffmpeg", "-y", "-v", "error", "-ss", f"{bas:.2f}",
+                    "-i", is_.veri["klip_yolu"], "-t", f"{en_uzun:.2f}", "-vn", "-ac", "1", "-ar", "22050",
+                    str(ses_dosyasi)], check=True)
     with wave.open(str(ses_dosyasi), "rb") as wf:
         sure = wf.getnframes() / float(wf.getframerate())
     try:
@@ -276,7 +349,8 @@ def seslendir(is_: Is, k: dict[str, Any]) -> None:
     if is_.veri.get("yayinci_sesi"):
         return klip_sesini_kullan(is_, k)
     ses_dosyasi = is_.klasor / "ses.wav"
-    sure = sentezle(is_.veri["senaryo"], k["ses"], ses_dosyasi, hiz=k.get("ses_hizi", 1.08))
+    sure = sentezle(is_.veri["senaryo"], k["ses"], ses_dosyasi, hiz=k.get("ses_hizi", 1.08),
+                    yedek=k.get("ses_yedek"))
     try:
         zamanlar = kelime_zamanlari(ses_dosyasi, k["dil"])
     except Exception as e:

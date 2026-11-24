@@ -1,5 +1,7 @@
 # Her kanalın kendi "iş tanımı". İstediğin satırı değiştirebilirsin.
-# ses: Piper ses modeli (liste: https://huggingface.co/rhasspy/piper-voices)
+# ses: "kokoro:<ses>" = Kokoro-82M (Apache 2.0, yalnız İngilizce, en kaliteli; liste:
+#      https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md) ya da Piper ses modeli
+#      (liste: https://huggingface.co/rhasspy/piper-voices). ses_yedek: Kokoro çalışmazsa kullanılacak Piper sesi.
 # yayin_saatleri: Türkiye saatiyle; YouTube videoyu bu saatte herkese açar.
 
 kanallar:
@@ -8,7 +10,8 @@ kanallar:
     aktif: true
     dil: en
     nis: "AI and technology news explained in 30 seconds, with one honest opinion"
-    ses: en_US-ryan-high
+    ses: "kokoro:af_heart"      # Kokoro'nun en yüksek puanlı sesi
+    ses_yedek: en_US-ryan-high
     ses_hizi: 1.08
     gunluk_video: 1
     yayin_saatleri: ["17:00"]  # ABD sabahı
@@ -60,7 +63,8 @@ kanallar:
     aktif: true
     dil: en
     nis: "GTA news, rumors checked, hidden details and tips, with original commentary"
-    ses: en_US-ryan-high
+    ses: "kokoro:am_michael"    # erkek ses, oyun kanalı
+    ses_yedek: en_US-ryan-high
     ses_hizi: 1.1
     gunluk_video: 1
     yayin_saatleri: ["19:00"]

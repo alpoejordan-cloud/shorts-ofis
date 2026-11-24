@@ -9,6 +9,8 @@
   rapor                haftalık raporu yazar
   gunluk               zamanlayıcının çalıştırdığı tam gün: üret + yükle
   durum                işlerin özetini gösterir
+  temizle              biten işlerin ara dosyalarını siler (3 gün), eski videoları (30 gün)
+  ozet                 bugünün durum özetini yazar (veri/raporlar/)
   yayinla İŞ [İŞ...]   seçilen işleri hemen herkese açık yükler (zamanlama yok)
   hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
@@ -38,6 +40,8 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("gunluk")
     alt.add_parser("durum")
     alt.add_parser("hatirlat")
+    alt.add_parser("temizle")
+    alt.add_parser("ozet")
     yy = alt.add_parser("yayinla")
     yy.add_argument("isler", nargs="+")
     a = p.parse_args(argv)
@@ -57,6 +61,14 @@ def main(argv: list[str] | None = None) -> int:
             if i.veri.get("kampanya"):
                 print(f"   Content Rewards'a 30 dk içinde gönder: {i.veri['kampanya']}")
         return 0
+    if a.komut == "temizle":
+        from .temizlik import temizle
+        print(temizle())
+        return 0
+    if a.komut == "ozet":
+        from .temizlik import gunluk_ozet
+        print(gunluk_ozet())
+        return 0
     if a.komut == "hatirlat":
         from .ajanlar.hatirlatici import kontrol
         print(kontrol(), "kampanya bildirimi")
@@ -69,7 +81,9 @@ def main(argv: list[str] | None = None) -> int:
         from .ajanlar.seslendirme import ses_indir
         from .cekirdek import kanallar
         for k in kanallar(sadece_aktif=False):
-            print("İndirildi:", ses_indir(k["ses"]))
+            for ses in [k["ses"], k.get("ses_yedek")]:
+                if ses:
+                    print("İndirildi:", ses_indir(ses))
         return 0
     if a.komut == "yetkilendir":
         from .ajanlar.yukleyici import yetkilendir

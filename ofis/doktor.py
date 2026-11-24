@@ -26,6 +26,15 @@ def kontrol() -> list[tuple[str, bool, bool, str]]:
     for k in kanallar():
         s.append((f"Ses modeli {k['ses']} ({k['id']})", ses_yolu(k["ses"]).exists(), True,
                   "python -m ofis sesleri-indir"))
+        if k.get("ses_yedek"):
+            s.append((f"Yedek ses {k['ses_yedek']} ({k['id']})", ses_yolu(k["ses_yedek"]).exists(), False,
+                      "python -m ofis sesleri-indir"))
+    if any(str(k["ses"]).startswith("kokoro:") for k in kanallar()):
+        s.append(("Python paketi kokoro-onnx (kaliteli İngilizce ses)",
+                  importlib.util.find_spec("kokoro_onnx") is not None, False,
+                  "pip install -r requirements.txt (yoksa Piper yedek sesi kullanılır)"))
+    s.append(("OpenCV (yüz kamerası tespiti)", importlib.util.find_spec("cv2") is not None, False,
+              "pip install -r requirements.txt (yoksa kampanya klipleri tam dikey kırpılır)"))
     s.append(("Stok video anahtarı (Pexels veya Pixabay)",
               bool(ortam("PEXELS_API_ANAHTARI") or ortam("PIXABAY_API_ANAHTARI")), False,
               "İsteğe bağlı: yoksa görüntüler yapay zekayla üretilir. Pixabay anahtarı: pixabay.com/api/docs (giriş yapınca sayfada görünür)"))

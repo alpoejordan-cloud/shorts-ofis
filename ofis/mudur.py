@@ -122,4 +122,11 @@ def gunluk_calisma() -> None:
         yukleyici.yukle_hepsi()
     except Exception as e:
         log.error("Yükleme adımı çalışmadı: %s", e)
+    from .temizlik import gunluk_ozet, temizle
+
+    for adim in (temizle, lambda: gunluk_ozet((time.time() - bas) / 60)):
+        try:
+            adim()
+        except Exception as e:  # temizlik/özet hatası üretimi bozmasın
+            log.warning("Temizlik/özet adımı çalışmadı: %s", e)
     log.info("=== Günlük çalışma bitti (%.0f dk) ===", (time.time() - bas) / 60)

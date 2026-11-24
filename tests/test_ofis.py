@@ -341,6 +341,46 @@ def test_seo_ana_anahtar_hep_basta():
     assert seo.baslik("GTA 6 trailer breakdown", k) == "GTA 6 trailer breakdown #shorts"
 
 
+def test_en_iyi_an_gurultulu_bolumu_bulur(tmp_path, monkeypatch):
+    import numpy as np
+
+    dizi = np.zeros(16000 * 90, dtype=np.float32)
+    dizi[16000 * 60:16000 * 70] = 0.8  # 60-70. saniyede bağırış
+    monkeypatch.setattr(seslendirme, "ses_dizisi", lambda yol: dizi)
+    bas = seslendirme.en_iyi_an(tmp_path / "x.mp4", 30)
+    assert 35 <= bas <= 60
+    monkeypatch.setattr(seslendirme, "ses_dizisi", lambda yol: dizi[: 16000 * 20])
+    assert seslendirme.en_iyi_an(tmp_path / "x.mp4", 30) == 0.0
+
+
+def test_kokoro_calismazsa_piper_yedegi(monkeypatch, tmp_path):
+    def bozuk(*a, **kw):
+        raise RuntimeError("kokoro yok")
+
+    cagrilan = []
+    monkeypatch.setattr(seslendirme, "_kokoro_sentezle", bozuk)
+    monkeypatch.setattr(seslendirme, "_ses_yukle", lambda ad: cagrilan.append(ad) or (_ for _ in ()).throw(StopIteration))
+    with pytest.raises(StopIteration):
+        seslendirme.sentezle("hi", "kokoro:af_heart", tmp_path / "a.wav", yedek="en_US-ryan-high")
+    assert cagrilan == ["en_US-ryan-high"]
+
+
+def test_temizlik_ve_gunluk_ozet():
+    from datetime import datetime, timedelta
+
+    from ofis import temizlik
+
+    i = cekirdek.Is(kanal="teknoloji_en", veri={"baslik": "Eski"})
+    i.durum = "yuklendi"
+    i.kaydet()
+    (i.klasor / "ham_video.mp4").write_bytes(b"x" * 2048)
+    (i.klasor / "video.mp4").write_bytes(b"x")
+    temizlik.temizle(ara_gun=3, video_gun=30, simdi=datetime.now() + timedelta(days=5))
+    assert not (i.klasor / "ham_video.mp4").exists() and (i.klasor / "video.mp4").exists()
+    metin = temizlik.gunluk_ozet()
+    assert "Günlük özet" in metin and "teknoloji_en" in metin
+
+
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

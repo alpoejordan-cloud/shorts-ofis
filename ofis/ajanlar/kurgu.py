@@ -36,6 +36,11 @@ def sahne_sureleri(adet: int, toplam: float, en_az: float = 2.5) -> list[float]:
 
 
 def sahne_komutu(sahne: dict[str, Any], sure: float, cikis: str) -> list[str]:
+    if sahne["tur"] == "desen":
+        c0, c1 = sahne.get("renkler", ["0x0f2027", "0x2c5364"])
+        kaynak = f"gradients=s={G}x{Y}:r={FPS}:c0={c0}:c1={c1}:speed=0.015:d={sure:.2f}"
+        return ["-f", "lavfi", "-i", kaynak, "-t", f"{sure:.2f}", "-vf", "setsar=1,format=yuv420p",
+                "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", cikis]
     if sahne["tur"] == "resim":
         kare = int(sure * FPS)
         yakinlas = random.choice(["min(zoom+0.0009,1.12)", "if(eq(on,0),1.12,max(zoom-0.0009,1.0))"])
@@ -102,7 +107,8 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
     parcalar = []
     for i, (sahne, s) in enumerate(zip(sahneler, sureler)):
         ad = f"parca_{i:02d}.mp4"
-        sahne = {**sahne, "yol": str(Path(sahne["yol"]).resolve())}
+        if "yol" in sahne:
+            sahne = {**sahne, "yol": str(Path(sahne["yol"]).resolve())}
         calistir(sahne_komutu(sahne, s, ad), klasor)
         parcalar.append(ad)
     (klasor / "liste.txt").write_text("".join(f"file '{p}'\n" for p in parcalar), encoding="utf-8")

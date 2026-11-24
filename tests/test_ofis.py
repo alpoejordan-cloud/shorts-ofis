@@ -90,8 +90,9 @@ def test_kurgu_uctan_uca(tmp_path, monkeypatch):
                     "-frames:v", "1", str(tmp_path / "b.png")], check=True)
     seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(seslendirme.tahmini_zamanlar("one two three four", 3)),
                         klasor / "altyazi.ass")
-    i.veri = {"sure": 3.0, "sahneler": [{"tur": "video", "yol": str(tmp_path / "a.mp4")},
-                                        {"tur": "resim", "yol": str(tmp_path / "b.png")}]}
+    i.veri = {"sure": 7.5, "sahneler": [{"tur": "video", "yol": str(tmp_path / "a.mp4")},
+                                        {"tur": "resim", "yol": str(tmp_path / "b.png")},
+                                        {"tur": "desen", "renkler": ["0x0f2027", "0x2c5364"]}]}
     monkeypatch.setattr(kurgu, "muzik_sec", lambda k: None)
     kurgu.kurgula(i, {"id": "teknoloji_en"})
     cikti = klasor / "video.mp4"
@@ -168,3 +169,21 @@ def test_kisa_senaryo_genisletilir(monkeypatch):
     i = cekirdek.Is(kanal="teknoloji_en", veri={"konu": "AI", "kaynaklar": []})
     senarist.yaz(i, k)
     assert 70 <= len(i.veri["senaryo"].split()) <= 115
+
+
+def test_ses_dizisi_16khz(tmp_path):
+    yol = tmp_path / "s.wav"
+    with wave.open(str(yol), "wb") as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(22050)
+        wf.writeframes(b"\x00\x00" * 22050)
+    dizi = seslendirme.ses_dizisi(yol)
+    assert abs(len(dizi) - 16000) < 200
+
+
+def test_gorsel_yoksa_renk_gecisi_eklenir(monkeypatch):
+    monkeypatch.setattr(gorsel, "ai_gorsel", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("402 Payment Required")))
+    monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
+    i = cekirdek.Is(kanal="teknoloji_en", veri={"gorsel_kelimeler": ["a"]})
+    gorsel.topla(i, cekirdek.kanal("teknoloji_en"))
+    assert [s["tur"] for s in i.veri["sahneler"]] == ["desen"] * 4

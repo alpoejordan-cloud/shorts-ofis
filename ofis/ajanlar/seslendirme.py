@@ -112,11 +112,25 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
     cikis.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
 
 
+def ses_dizisi(ses_dosyasi: Path):
+    import shutil
+    import subprocess
+
+    import numpy as np
+
+    ham = subprocess.run(
+        [shutil.which("ffmpeg") or "ffmpeg", "-v", "error", "-i", str(ses_dosyasi), "-f", "s16le",
+         "-ac", "1", "-ar", "16000", "-"], capture_output=True, check=True,
+    ).stdout
+    return np.frombuffer(ham, np.int16).astype(np.float32) / 32768.0
+
+
 def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
     from faster_whisper import WhisperModel
 
     model = WhisperModel("small", device="cpu", compute_type="int8")
-    parcalar, _ = model.transcribe(str(ses_dosyasi), language=dil, word_timestamps=True, vad_filter=False)
+    # Sesi FFmpeg ile 16 kHz diziye çeviriyoruz; böylece PyAV sürüm uyumsuzlukları sorun olmaz
+    parcalar, _ = model.transcribe(ses_dizisi(ses_dosyasi), language=dil, word_timestamps=True, vad_filter=False)
     return [
         {"kelime": w.word, "bas": w.start, "son": w.end}
         for p in parcalar for w in (p.words or [])

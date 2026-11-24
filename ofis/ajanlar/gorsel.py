@@ -186,6 +186,8 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
                     ai_gorsel(tam_istem, hedef, seed=abs(hash((is_.id, sira))) % 10**6)
                 except Exception as e:
                     log.warning("AI görsel üretilemedi (%s): %s", istem, e)
+                    if "402" in str(e) or "429" in str(e):
+                        break  # servis bugün ücretsiz istek kabul etmiyor; boşuna bekleme
                     continue
                 konum = min(len(sahneler), sira * 2)
                 sahneler.insert(konum, {"tur": "resim", "yol": str(hedef)})
@@ -201,6 +203,19 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
             tur = "resim" if p.suffix.lower() in RESIM_UZANTI else "video"
             sahneler.insert(min(len(sahneler), 1 + len(sahneler) // 2), {"tur": tur, "yol": str(p)})
             lisans.append(f"Yerel görsel: {p.name}")
+
+    # Hiçbir kaynak yeterli görüntü vermediyse, internet gerektirmeyen hareketli renk geçişleri eklenir
+    en_az = int(k.get("en_az_sahne", 4))
+    paletler = [("0x0f2027", "0x2c5364"), ("0x41295a", "0x2f0743"), ("0x134e5e", "0x71b280"),
+                ("0x1d2b64", "0xf8cdda"), ("0x232526", "0x414345"), ("0x8e0e00", "0x1f1c18")]
+    random.shuffle(paletler)
+    eklenen_desen = 0
+    while len(sahneler) < en_az and eklenen_desen < len(paletler):
+        c0, c1 = paletler[eklenen_desen]
+        sahneler.append({"tur": "desen", "renkler": [c0, c1]})
+        eklenen_desen += 1
+    if eklenen_desen:
+        log.info("%s: %d sahne renk geçişiyle tamamlandı (stok/AI görsel yetersiz)", is_.id, eklenen_desen)
 
     if not sahneler:
         raise RuntimeError(

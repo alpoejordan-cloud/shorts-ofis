@@ -113,7 +113,7 @@ def gunluk_calisma() -> None:
 
     sorunlar = [s for s in kontrol() if not s[1] and s[2]]
     if sorunlar:
-        for ad, _, cozum, _ in sorunlar:
+        for ad, _, _, cozum in sorunlar:
             log.error("Eksik: %s -> %s", ad, cozum)
         log.error("Zorunlu eksikler var, üretim atlandı. 'python -m ofis doktor' ile bak.")
     else:

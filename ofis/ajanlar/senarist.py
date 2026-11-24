@@ -164,8 +164,12 @@ JSON fields:
         baslik_kismi = _re.search(r"'([^']+)'", str(fikir.get("klip_aciklama", "")))
         s["kanca_metni"] = (baslik_kismi.group(1) if baslik_kismi else str(fikir.get("yayinci", ""))).strip()
     etiketler = list(fikir.get("zorunlu_etiketler") or [])
-    aciklama = "\n\n".join(x for x in [fikir.get("kredi", ""), str(s.get("aciklama", "")).strip(),
-                                       " ".join(etiketler)] if x)
+    # açıklama modelden alınmaz (klipte olmayanı uydurabilir): klip başlığından kalıp cümle
+    baslik_kismi = _re.search(r"'([^']+)'", str(fikir.get("klip_aciklama", "")))
+    klip_adi = baslik_kismi.group(1) if baslik_kismi else str(fikir.get("klip_aciklama", ""))
+    ozet = f"{str(fikir.get('yayinci', '')).split('(')[0].strip()}: {klip_adi} (GTA 6 stream clip)."
+    aciklama = "\n\n".join(x for x in [fikir.get("kredi", ""), ozet, " ".join(etiketler)] if x)
+    s["etiketler"] = [w for w in s.get("etiketler", []) if str(w).lower() in kaynak or " " not in str(w)][:8]
     is_.veri.update({
         "format": "yayıncı klibi (orijinal ses)",
         "baslik": str(s["baslik"]).strip(),

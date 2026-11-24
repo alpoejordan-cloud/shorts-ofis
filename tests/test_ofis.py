@@ -1,7 +1,7 @@
 import shutil
 import subprocess
 import wave
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -289,6 +289,48 @@ def test_ass_kapanis_cagrisi_son_uc_saniye(tmp_path):
 def test_altyazida_kufur_maskelenir():
     assert seslendirme.kufur_maskele("get the fuck out, shit") == "get the f*** out, s***"
     assert seslendirme.kufur_maskele("Dickens classic") == "Dickens classic"
+
+
+def test_kampanya_gonderim_hatirlatici(monkeypatch):
+    from ofis.ajanlar import hatirlatici
+
+    tz = ZoneInfo("Europe/Istanbul")
+    yayin = datetime(2026, 11, 25, 17, 0, tzinfo=tz)
+    i = cekirdek.Is(kanal="gta_en", veri={"kampanya": "https://contentrewards.com/c/campaigns/x", "baslik": "T"})
+    hatirlatici.gonderim_kaydi(i, "abc", yayin)
+    i.durum = "yuklendi"
+    i.kaydet()
+    bildirimler = []
+    sahte = lambda b, m: bildirimler.append(m)  # noqa: E731
+    assert hatirlatici.kontrol(yayin - timedelta(minutes=5), bildir=sahte) == 0
+    assert hatirlatici.kontrol(yayin + timedelta(minutes=2), bildir=sahte) == 1
+    assert hatirlatici.kontrol(yayin + timedelta(minutes=10), bildir=sahte) == 0  # tek bildirim
+    hatirlatici.kontrol(yayin + timedelta(minutes=31), bildir=sahte)
+    assert cekirdek.Is.yukle(i.id).veri["kampanya_gonderim"]["durum"] == "sure_doldu"
+
+
+def test_dikey_yerlesim_filtreleri():
+    f = kurgu.dikey_yerlesim(1920, 1080, [0, 0, 400, 284])
+    assert "vstack" in f and "crop=400:284:0:0" in f
+    assert "vstack" not in kurgu.dikey_yerlesim(1920, 1080, None)
+
+
+def test_seo_baslik_aciklama_etiket():
+    from ofis.ajanlar import seo
+
+    k = cekirdek.kanal("gta_en")
+    veri = {"baslik": "Dom crashes a plane and the whole server laughs at him for ages #shorts",
+            "aciklama": "Clip: dasgasd3m on Kick. Watch Dom live: https://kick.com/dasgasd3m #dasgasdom3\n\n"
+                        "Dom crashes a plane.\n\n#dasgasdom3 #GTA6",
+            "kredi": "Clip: dasgasd3m on Kick. Watch Dom live: https://kick.com/dasgasd3m #dasgasdom3",
+            "zorunlu_etiketler": ["#dasgasdom3", "#GTA6"], "yayinci": "Dasgasd3m (Dom)",
+            "etiketler": ["plane crash", "funny"]}
+    s = seo.uygula(veri, k)
+    assert len(s["title"]) <= 60 and s["title"].startswith("GTA 6") and s["title"].endswith("#shorts")
+    assert s["description"].splitlines()[0].startswith("GTA 6")
+    assert "kick.com/dasgasd3m" in s["description"] and "#dasgasdom3" in s["description"]
+    assert 10 <= len(s["tags"]) <= 15 and sum(len(t) + 4 for t in s["tags"]) <= 500
+    assert s["tags"][0] == "Dasgasd3m" and s["defaultLanguage"] == "en" and s["categoryId"] == "20"
 
 
 def test_kanca_metni_alti_kelimeyi_gecmez():

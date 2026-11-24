@@ -19,4 +19,7 @@ function Gorev($ad, $komut, $tetik) {
 Gorev "ShortsOfis - Gunluk uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 02:30)
 Gorev "ShortsOfis - Ogle yukleme" "yukle" (New-ScheduledTaskTrigger -Daily -At 14:00)
 Gorev "ShortsOfis - Haftalik rapor" "rapor" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 09:00)
+# Kampanya klipleri yayına girince 30 dk içinde Content Rewards'a gönderilmeli: 5 dakikada bir kontrol + bildirim
+Gorev "ShortsOfis - Kampanya hatirlatici" "hatirlat" (New-ScheduledTaskTrigger -Once -At (Get-Date) `
+    -RepetitionInterval (New-TimeSpan -Minutes 5))
 Write-Host "`nZamanlama tamam. Görevleri 'Görev Zamanlayıcı' uygulamasında görebilirsin." -ForegroundColor Green

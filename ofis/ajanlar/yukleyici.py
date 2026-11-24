@@ -87,31 +87,43 @@ def sonraki_yayin_zamani(k: dict[str, Any], dolu: list[datetime], simdi: datetim
 def yukle_bir(is_: Is, k: dict[str, Any]) -> None:
     from googleapiclient.http import MediaFileUpload
 
-    dolu = [datetime.fromisoformat(i.veri["yayin_zamani"]) for i in isler("yuklendi", k["id"])
-            if i.veri.get("yayin_zamani")]
-    zaman = sonraki_yayin_zamani(k, dolu)
-    govde = {
-        "snippet": {
-            "title": is_.veri["baslik"][:100],
-            "description": is_.veri["aciklama"][:4900],
-            "tags": is_.veri.get("etiketler", []),
-            "categoryId": str(k.get("youtube_kategori", 22)),
-            "defaultLanguage": k["dil"],
-            "defaultAudioLanguage": k["dil"],
-        },
-        "status": {
-            "privacyStatus": "private",
-            "publishAt": zaman.isoformat(),
-            "selfDeclaredMadeForKids": False,
-            "containsSyntheticMedia": bool(is_.veri.get("yapay_icerik", False)),
-        },
+    from .seo import uygula
+
+    hemen = bool(is_.veri.get("hemen_yayinla"))
+    if hemen:  # sen istedin: zamanlama yok, hemen herkese açık
+        zaman = datetime.now(ZoneInfo(k.get("saat_dilimi", "Europe/Istanbul")))
+    else:
+        dolu = [datetime.fromisoformat(i.veri["yayin_zamani"]) for i in isler("yuklendi", k["id"])
+                if i.veri.get("yayin_zamani")]
+        zaman = sonraki_yayin_zamani(k, dolu)
+    durum: dict[str, Any] = {
+        "privacyStatus": "public" if hemen else "private",
+        "selfDeclaredMadeForKids": False,
+        "containsSyntheticMedia": bool(is_.veri.get("yapay_icerik", False)),
     }
+    if not hemen:
+        durum["publishAt"] = zaman.isoformat()
+    snippet = uygula(is_.veri, k)  # SEO: başlık/açıklama/etiket, dil, kategori
+    is_.veri["seo"] = snippet
+    govde = {"snippet": snippet, "status": durum}
     medya = MediaFileUpload(str(is_.klasor / is_.veri["video"]), mimetype="video/mp4", resumable=True, chunksize=8 << 20)
     istek = servis(k["id"]).videos().insert(part="snippet,status", body=govde, media_body=medya)
     cevap = None
     while cevap is None:
         _, cevap = istek.next_chunk()
     is_.veri.update({"youtube_id": cevap["id"], "yayin_zamani": zaman.isoformat()})
+    # Denetlenmemiş API projelerinde YouTube videoyu "gizli (kilitli)" yapabilir: kontrol et
+    try:
+        st = servis(k["id"]).videos().list(part="status", id=cevap["id"]).execute()["items"][0]["status"]
+        is_.veri["youtube_durum"] = st
+        if hemen and st.get("privacyStatus") != "public":
+            log.warning("%s: YouTube videoyu %s bıraktı (denetlenmemiş API projesi kısıtı olabilir)",
+                        is_.id, st.get("privacyStatus"))
+    except Exception as e:
+        log.warning("%s: video durumu okunamadı: %s", is_.id, e)
+    from .hatirlatici import gonderim_kaydi
+
+    gonderim_kaydi(is_, cevap["id"], zaman)  # kampanya klibiyse 30 dk gönderim takibi
     is_.durum = "yuklendi"
     is_.kaydet()
     log.info("%s yüklendi: https://youtube.com/shorts/%s, yayın: %s", is_.id, cevap["id"], zaman)

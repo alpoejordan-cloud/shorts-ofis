@@ -9,6 +9,7 @@
   rapor                haftalık raporu yazar
   gunluk               zamanlayıcının çalıştırdığı tam gün: üret + yükle
   durum                işlerin özetini gösterir
+  hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
 from __future__ import annotations
 
@@ -35,7 +36,12 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("rapor")
     alt.add_parser("gunluk")
     alt.add_parser("durum")
+    alt.add_parser("hatirlat")
     a = p.parse_args(argv)
+    if a.komut == "hatirlat":
+        from .ajanlar.hatirlatici import kontrol
+        print(kontrol(), "kampanya bildirimi")
+        return 0
 
     if a.komut == "doktor":
         from .doktor import yazdir

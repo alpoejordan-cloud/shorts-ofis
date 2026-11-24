@@ -29,6 +29,39 @@ def reddet(is_id: str, neden: str = "") -> None:
         log.info("%s reddedildi: %s", is_id, neden)
 
 
+def gonderim_bolumu() -> str:
+    """Yayına giren kampanya klipleri: 30 dk içinde Content Rewards'a gönderilmeli."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from .hatirlatici import SURE, bekleyenler
+
+    e = html.escape
+    simdi = datetime.now(ZoneInfo("Europe/Istanbul"))
+    satirlar = []
+    for i in bekleyenler():
+        g = i.veri["kampanya_gonderim"]
+        yayin = datetime.fromisoformat(g["yayin"])
+        if simdi < yayin:
+            durum = f"Yayın: {yayin:%d.%m %H:%M}. O saatten sonra 30 dk içinde gönder."
+            sinif = "bekle"
+        else:
+            kalan = int((yayin + SURE - simdi).total_seconds() // 60)
+            durum = f"ŞİMDİ GÖNDER: {max(kalan, 0)} dk kaldı"
+            sinif = "acil"
+        satirlar.append(f"""
+<div class="gonder {sinif}"><b>{e(durum)}</b><br>{e(i.veri.get('baslik', ''))}<br>
+  Video linki: <code>{e(g['link'])}</code><br>
+  <a href="{e(g['kampanya'])}" target="_blank">Kampanya sayfasını aç (Submit clip)</a>
+  <form method="post" action="/karar" style="display:inline">
+    <input type="hidden" name="id" value="{e(i.id)}">
+    <button name="karar" value="gonderildi" class="onay">Gönderdim</button>
+  </form></div>""")
+    if not satirlar:
+        return ""
+    return "<h1>Content Rewards'a gönderilecekler</h1>" + "".join(satirlar)
+
+
 def sayfa() -> str:
     bekleyen = isler("onay_bekliyor")
     kartlar = []
@@ -42,6 +75,8 @@ def sayfa() -> str:
     <small>{e(i.kanal)} · {e(v.get('format', ''))} · {v.get('sure', '?')} sn</small>
     <h2>{e(v.get('baslik', ''))}</h2>
     <p>{e(v.get('senaryo', ''))}</p>
+    {('<p class="uyari">Kampanya klibi: yayına girince 30 dk içinde Content Rewards' + "'" + 'a gönderilmeli. '
+      'Bilgisayar açık olsun, bildirim gelecek.</p>') if v.get('kampanya') else ''}
     <details><summary>Açıklama ve lisanslar</summary><pre>{e(v.get('aciklama', ''))}
 
 {e(chr(10).join(v.get('lisanslar', [])))}</pre></details>
@@ -63,9 +98,11 @@ video{{width:270px;height:480px;background:#000;border-radius:8px}} .bilgi{{flex
 h2{{font-size:17px;margin:4px 0}} p{{white-space:pre-wrap;line-height:1.45}} pre{{white-space:pre-wrap;font-size:12px}}
 button{{border:0;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer;margin:4px 4px 4px 0}}
 .onay{{background:#16a34a;color:#fff}} .red{{background:#dc2626;color:#fff}} input{{padding:9px;border:1px solid #ccc;border-radius:8px}}
-.bos{{color:#78716c}}
+.bos{{color:#78716c}} .uyari{{background:#fef3c7;color:#78350f;padding:8px;border-radius:8px}}
+.gonder{{border-radius:12px;padding:12px;margin:0 0 12px;line-height:1.6}} .acil{{background:#fee2e2;color:#7f1d1d}}
+.bekle{{background:#e0f2fe;color:#0c4a6e}}
 @media (prefers-color-scheme:dark){{body{{background:#1c1917;color:#f5f5f4}}article{{background:#292524}}}}
-</style></head><body><h1>Onay masası · {len(bekleyen)} video bekliyor</h1>{icerik}</body></html>"""
+</style></head><body>{gonderim_bolumu()}<h1>Onay masası · {len(bekleyen)} video bekliyor</h1>{icerik}</body></html>"""
 
 
 class Isleyici(BaseHTTPRequestHandler):
@@ -106,6 +143,10 @@ class Isleyici(BaseHTTPRequestHandler):
                 onayla(is_id)
             elif karar == "red":
                 reddet(is_id, form.get("neden", [""])[0])
+            elif karar == "gonderildi":
+                from .hatirlatici import gonderildi
+
+                gonderildi(is_id)
         self.send_response(303)
         self.send_header("Location", "/")
         self.end_headers()

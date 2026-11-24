@@ -117,7 +117,8 @@ def _temiz(metin: str) -> str:
 
 def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
             kanca: str | None = None, toplam: float | None = None, dil: str = "en",
-            acilis_notu: str | None = None, acilis_sure: float = 2.0, kapanis: str | None = None) -> None:
+            acilis_notu: str | None = None, acilis_sure: float = 2.0, kapanis: str | None = None,
+            kanca_y: int | None = None) -> None:
     """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
     altta ilerleme çubuğu."""
     _DIL["dil"] = dil
@@ -174,7 +175,8 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         else:
             metin = f"{{\\c{vurgu}}}" + " ".join(sozler)
         satirlar.append(f"Dialogue: 2,0:00:00.00,{_ass_zaman(kanca_sure)},Kanca,,0,0,0,,"
-                        f"{{\\fad(0,250)\\t(0,140,\\fscx112\\fscy112)\\t(140,280,\\fscx100\\fscy100)}}{metin}")
+                        "{" + (f"\\an5\\pos(540,{kanca_y})" if kanca_y else "") +
+                        f"\\fad(0,250)\\t(0,140,\\fscx112\\fscy112)\\t(140,280,\\fscx100\\fscy100)}}{metin}")
     if kapanis and toplam:  # kampanyanın istediği çağrı (CTA): son 3 saniye, ekran ortasında
         temiz_k = kapanis.replace("{", "(").replace("}", ")").replace("\\", "/")
         satirlar.append(f"Dialogue: 2,{_ass_zaman(max(toplam - 3.0, 0))},{_ass_zaman(toplam)},Kanca,,0,0,0,,"
@@ -263,7 +265,8 @@ def klip_sesini_kullan(is_: Is, k: dict[str, Any]) -> None:
                 for z in zamanlar]
     ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"),
             kanca=is_.veri.get("kanca_metni"), toplam=sure, dil=k.get("dil", "en"),
-            acilis_notu=is_.veri.get("acilis_notu") or None, kapanis=is_.veri.get("kapanis_notu") or None)
+            acilis_notu=is_.veri.get("acilis_notu") or None, kapanis=is_.veri.get("kapanis_notu") or None,
+            kanca_y=768)
     is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2),
                      "kelime_zamanlari": zamanlar})
     log.info("%s: yayıncı sesi kullanılıyor (%.1f sn)", is_.id, sure)

@@ -100,6 +100,70 @@ def _cerceve(en: int, boy: int) -> str:
             f"[bg][fg]overlay=(W-w)/2:(H-h)/2-60,setsar=1")
 
 
+UST_YUKSEKLIK = 768  # yayıncı düzeni: üstte yüz kamerası (1080x768), altta oyun (1080x1152)
+
+
+def yuz_kamerasi_bul(yol: str, ornek: int = 10) -> list[int] | None:
+    """Yayın klibinde yüz kamerasının yerini bulur: karelerde hep aynı yerde duran yüz.
+    Dönüş: [x, y, w, h] (piksel, kaynak çözünürlükte) ya da None (yüz kamerası yok)."""
+    try:
+        import cv2
+    except ImportError:
+        return None
+    cap = cv2.VideoCapture(yol)
+    toplam = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    en, boy = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if not toplam or not en or not boy:
+        cap.release()
+        return None
+    sinif = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    kutular: list[tuple[float, float, float]] = []
+    for i in range(ornek):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(toplam * (i + 0.5) / ornek))
+        ok, kare = cap.read()
+        if not ok:
+            continue
+        gri = cv2.cvtColor(kare, cv2.COLOR_BGR2GRAY)
+        for (x, y, w, h) in sinif.detectMultiScale(gri, 1.1, 8, minSize=(int(boy * 0.07), int(boy * 0.07))):
+            kutular.append((x + w / 2, y + h / 2, float(w)))
+    cap.release()
+    if not kutular:
+        return None
+    yakin = boy * 0.08
+
+    def komsular(a):
+        return [b for b in kutular if abs(a[0] - b[0]) < yakin and abs(a[1] - b[1]) < yakin]
+
+    grup = komsular(max(kutular, key=lambda a: len(komsular(a))))
+    if len(grup) < max(3, ornek // 3):  # yüz kareler boyunca aynı yerde değilse oyun içi bir yüzdür
+        return None
+    grup.sort()
+    cx, cy = grup[len(grup) // 2][0], sorted(g[1] for g in grup)[len(grup) // 2]
+    yw = sorted(g[2] for g in grup)[len(grup) // 2]
+    kw = min(en, yw * 3.4)
+    kh = min(boy, kw * UST_YUKSEKLIK / G)
+    kw = kh * G / UST_YUKSEKLIK
+    x0 = min(max(cx - kw / 2, 0), en - kw)
+    y0 = min(max(cy - kh * 0.45, 0), boy - kh)
+    return [int(x0) // 2 * 2, int(y0) // 2 * 2, int(kw) // 2 * 2, int(kh) // 2 * 2]
+
+
+def dikey_yerlesim(en: int, boy: int, yuz: list[int] | None) -> str:
+    """Yayıncı klibi düzeni: yüz kamerası varsa üstte (1080x768) + oyun altta büyük (1080x1152);
+    yoksa oyun tam dikey kırpılır."""
+    alt = Y - UST_YUKSEKLIK
+    if yuz:
+        x, y, w, h = yuz
+        gw = min(en, int(boy * G / alt) // 2 * 2)
+        gx = (en - gw) // 2
+        return (f"split=2[u][o];[u]crop={w}:{h}:{x}:{y},scale={G}:{UST_YUKSEKLIK}:force_original_aspect_ratio=increase,"
+                f"crop={G}:{UST_YUKSEKLIK},setsar=1[ust];"
+                f"[o]crop={gw}:{boy}:{gx}:0,scale={G}:{alt}:force_original_aspect_ratio=increase,crop={G}:{alt},setsar=1[alt];"
+                f"[ust][alt]vstack,drawbox=x=0:y={UST_YUKSEKLIK - 3}:w={G}:h=6:color=black@0.9:t=fill")
+    gw = min(en, int(boy * 9 / 16) // 2 * 2)
+    return f"crop={gw}:{boy}:{(en - gw) // 2}:0,scale={G}:{Y},setsar=1"
+
+
 def _zoompan(hareket: str, kare: int) -> str:
     ilerleme = f"(on/{max(kare - 1, 1)})"
     merkez_x, merkez_y = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
@@ -129,6 +193,9 @@ def sahne_komutu(sahne: dict[str, Any], sure: float, cikis: str, hareket: str = 
         filtre = (f"[0:v]{_cerceve(en, boy)},scale={G * 2}:{Y * 2},{_zoompan(hareket, kare)},"
                   f"setsar=1,format=yuv420p[v]")
         return ["-i", sahne["yol"], "-filter_complex", filtre, "-map", "[v]", "-frames:v", str(kare), *KODLA, cikis]
+    if sahne.get("yerlesim") == "yayinci":  # kampanya klibi: baştan, ses ile senkron, dikey düzen
+        filtre = f"[0:v]fps={FPS},{dikey_yerlesim(en, boy, sahne.get('yuz'))},format=yuv420p[v]"
+        return ["-i", sahne["yol"], "-t", f"{sure:.2f}", "-filter_complex", filtre, "-map", "[v]", *KODLA, cikis]
     # video: farklı tekrarlarda farklı yerden başla, yavaş itme veya kaydırma
     baslangic = 0.0
     if sahne.get("bas") is not None:  # oyun kaydı gibi uzun kaynaklarda seçilmiş an
@@ -280,7 +347,8 @@ def altyazi_yenile(is_: Is, k: dict[str, Any], toplam: float) -> None:
     seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass",
                         k.get("altyazi"), kanca=kanca, toplam=toplam, dil=k.get("dil", "en"),
                         acilis_notu=is_.veri.get("acilis_notu") or None,
-                        kapanis=is_.veri.get("kapanis_notu") or None)
+                        kapanis=is_.veri.get("kapanis_notu") or None,
+                        kanca_y=UST_YUKSEKLIK if is_.veri.get("yayinci_sesi") else None)
 
 
 def kurgula(is_: Is, k: dict[str, Any]) -> None:
@@ -294,6 +362,10 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
         sure = max(sure, float(is_.veri["sure"]) + 0.3)
         if is_.veri.get("yayinci_sesi"):  # ses klibin kendisi: süre tam klip kadar
             sure = float(is_.veri["sure"])
+            if "yuz_kamerasi" not in is_.veri:
+                is_.veri["yuz_kamerasi"] = yuz_kamerasi_bul(str(Path(klip["yol"]).resolve()))
+                log.info("%s: yüz kamerası %s", is_.id, is_.veri["yuz_kamerasi"] or "bulunamadı, tam dikey kırpma")
+            klip = {**klip, "yerlesim": "yayinci", "yuz": is_.veri["yuz_kamerasi"]}
         plan = [{"sahne": klip, "tekrar": 0, "hareket": "yakin", "sure": sure, "gecis": "fade"}]
         if klip.get("orijinal_ses") and not is_.veri.get("yayinci_sesi"):
             klip_sesi =(str(Path(klip["yol"]).resolve()), float(klip["orijinal_ses"]))

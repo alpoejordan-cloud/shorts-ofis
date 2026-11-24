@@ -1,4 +1,4 @@
-requests>=2.31
+﻿requests>=2.31
 PyYAML>=6.0
 python-dotenv>=1.0
 piper-tts>=1.3.0
@@ -8,3 +8,5 @@ google-auth-oauthlib>=1.2
 google-auth-httplib2>=0.2
 tzdata>=2024.1
 pytest>=8.0
+opencv-python-headless>=4.9,<5  # kampanya kliplerinde yüz kamerası tespiti (5.x Haar dedektörünü kaldırdı)
+yt-dlp>=2025.1                # kampanyanın izin verdiği yayın kliplerini indirmek için

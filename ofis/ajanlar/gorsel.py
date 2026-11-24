@@ -82,6 +82,38 @@ def pexels_video(arama: str, adet: int = 3) -> list[dict[str, Any]]:
     return sonuc
 
 
+def pixabay_video(arama: str, adet: int = 3) -> list[dict[str, Any]]:
+    anahtar = ortam("PIXABAY_API_ANAHTARI")
+    if not anahtar:
+        return []
+    r = requests.get("https://pixabay.com/api/videos/",
+                     params={"key": anahtar, "q": arama[:100], "per_page": max(3, adet), "safesearch": "true"},
+                     timeout=30)
+    r.raise_for_status()
+    sonuc = []
+    for v in r.json().get("hits", []):
+        secenek = [x for x in v.get("videos", {}).values() if x.get("url") and (x.get("height") or 0) >= 720]
+        if not secenek:
+            continue
+        en_iyi = max(secenek, key=lambda x: x.get("height") or 0)
+        sonuc.append({"id": f"pixabay-{v['id']}", "link": en_iyi["url"], "sayfa": v.get("pageURL", ""),
+                      "sahip": v.get("user", ""), "sure": v.get("duration", 0)})
+    return sonuc[:adet]
+
+
+def stok_video(arama: str) -> list[dict[str, Any]]:
+    """Önce Pexels, sonra Pixabay; anahtar yoksa boş döner."""
+    for kaynak in (pexels_video, pixabay_video):
+        try:
+            sonuc = kaynak(arama)
+        except requests.RequestException as e:
+            log.warning("%s hatası (%s): %s", kaynak.__name__, arama, e)
+            continue
+        if sonuc:
+            return sonuc
+    return []
+
+
 def ai_gorsel(istem: str, hedef: Path, seed: int = 0) -> Path:
     """Ücretsiz Pollinations servisiyle 1080x1920 görsel üretir (anahtar gerekmez).
     Adres .env içindeki AI_GORSEL_ADRESI ile değiştirilebilir."""
@@ -129,24 +161,23 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
         kullanilan_pexels = set(json.loads((VERI / "pexels_kullanilan.json").read_text())
                                 if (VERI / "pexels_kullanilan.json").exists() else [])
         for sira, kelime in enumerate(is_.veri.get("gorsel_kelimeler", [])):
-            try:
-                adaylar = [a for a in pexels_video(kelime) if a["id"] not in kullanilan_pexels]
-            except requests.RequestException as e:
-                log.warning("Pexels hatası (%s): %s", kelime, e)
-                adaylar = []
+            adaylar = [a for a in stok_video(kelime) if a["id"] not in kullanilan_pexels]
             if not adaylar:
                 continue
             secim = adaylar[0]
-            yol = indir(secim["link"], gorsel_klasoru / f"{sira:02d}_pexels_{secim['id']}.mp4")
+            yol = indir(secim["link"], gorsel_klasoru / f"{sira:02d}_stok_{secim['id']}.mp4")
             sahneler.append({"tur": "video", "yol": str(yol)})
-            lisans.append(f"Pexels video {secim['id']} by {secim['sahip']} {secim['sayfa']}")
+            lisans.append(f"Stok video {secim['id']} by {secim['sahip']} {secim['sayfa']}")
             kullanilan_pexels.add(secim["id"])
         (VERI / "pexels_kullanilan.json").write_text(json.dumps(sorted(kullanilan_pexels)))
 
         # yapay zeka görselleri (izin gerektirmez; her video için yeni üretilir)
         ai_adet = int(k.get("ai_gorsel_adedi", 0))
+        if len(sahneler) < 3:  # stok video anahtarı yoksa veya az bulunduysa yapay zeka tamamlar
+            ai_adet = max(ai_adet, 5 - len(sahneler))
         if ai_adet:
-            istemler = (is_.veri.get("gorsel_kelimeler") or [is_.veri.get("konu", "")])[:ai_adet]
+            kelimeler = is_.veri.get("gorsel_kelimeler") or [is_.veri.get("konu", "")]
+            istemler = [kelimeler[n % len(kelimeler)] for n in range(ai_adet)]
             uretilen = 0
             for sira, istem in enumerate(istemler):
                 hedef = gorsel_klasoru / f"ai_{sira:02d}.jpg"
@@ -173,7 +204,8 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
 
     if not sahneler:
         raise RuntimeError(
-            "Hiç görsel bulunamadı. .env içine PEXELS_API_ANAHTARI ekle veya "
+            "Hiç görsel bulunamadı (yapay zeka görsel servisi de cevap vermedi). İnternet bağlantısını kontrol et, "
+            ".env içine PEXELS_API_ANAHTARI veya PIXABAY_API_ANAHTARI ekle ya da "
             f"gorseller/{k['id']}/ klasörüne görsel koy."
         )
     is_.veri.update({"sahneler": sahneler, "lisanslar": lisans})

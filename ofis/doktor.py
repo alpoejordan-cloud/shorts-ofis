@@ -26,8 +26,9 @@ def kontrol() -> list[tuple[str, bool, bool, str]]:
     for k in kanallar():
         s.append((f"Ses modeli {k['ses']} ({k['id']})", ses_yolu(k["ses"]).exists(), True,
                   "python -m ofis sesleri-indir"))
-    s.append(("Pexels API anahtarı", bool(ortam("PEXELS_API_ANAHTARI")), True,
-              ".env dosyasına PEXELS_API_ANAHTARI=... ekle (pexels.com/api, ücretsiz)"))
+    s.append(("Stok video anahtarı (Pexels veya Pixabay)",
+              bool(ortam("PEXELS_API_ANAHTARI") or ortam("PIXABAY_API_ANAHTARI")), False,
+              "İsteğe bağlı: yoksa görüntüler yapay zekayla üretilir. Pixabay anahtarı: pixabay.com/api/docs (giriş yapınca sayfada görünür)"))
     s.append(("YouTube API anahtarı (trendler için)", bool(ortam("YOUTUBE_API_ANAHTARI")), False,
               ".env dosyasına YOUTUBE_API_ANAHTARI=... ekle; yoksa trendler Google Trends ve Reddit'ten gelir"))
     s.append(("Google OAuth dosyası", istemci_dosyasi().exists(), False,

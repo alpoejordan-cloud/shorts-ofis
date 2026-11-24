@@ -141,9 +141,18 @@ def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
         return hedef
 
     monkeypatch.setattr(gorsel, "ai_gorsel", sahte_ai)
-    monkeypatch.setattr(gorsel, "pexels_video", lambda kelime, adet=3: [])
+    monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="gta_en", veri={"gorsel_kelimeler": ["a", "b", "c", "d", "e"]})
     gorsel.topla(i, cekirdek.kanal("gta_en"))
-    assert [s["tur"] for s in i.veri["sahneler"]] == ["resim"] * 4
+    assert [s["tur"] for s in i.veri["sahneler"]] == ["resim"] * 5
     assert i.veri["yapay_icerik"] is True
+
+
+def test_stok_anahtari_yoksa_yapay_zeka_tamamlar(monkeypatch):
+    monkeypatch.setattr(gorsel, "ai_gorsel", lambda istem, hedef, seed=0: hedef.write_bytes(b"x") or hedef)
+    monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
+    i = cekirdek.Is(kanal="finans_tr", veri={"gorsel_kelimeler": ["money", "bank"]})
+    gorsel.topla(i, cekirdek.kanal("finans_tr"))
+    assert len(i.veri["sahneler"]) == 5

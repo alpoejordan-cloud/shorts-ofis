@@ -1,0 +1,118 @@
+# Her kanalın kendi "iş tanımı". İstediğin satırı değiştirebilirsin.
+# ses: Piper ses modeli (liste: https://huggingface.co/rhasspy/piper-voices)
+# yayin_saatleri: Türkiye saatiyle; YouTube videoyu bu saatte herkese açar.
+
+kanallar:
+  - id: teknoloji_en
+    ad: ""                     # YouTube'daki kanal adı (açınca yaz)
+    aktif: true
+    dil: en
+    nis: "AI and technology news explained in 30 seconds, with one honest opinion"
+    ses: en_US-ryan-high
+    ses_hizi: 1.08
+    gunluk_video: 1
+    yayin_saatleri: ["17:00"]  # ABD sabahı
+    saat_dilimi: Europe/Istanbul
+    youtube_kategori: 28        # Bilim ve Teknoloji
+    kelime_araligi: [70, 115]
+    otomatik_onay: false
+    trend:
+      youtube: {bolge: US, kategori: 28}
+      google_trends: {bolge: US}
+      reddit: [technology, artificial, gadgets, OpenAI]
+    formatlar:
+      - "news in 3 quick points + my take"
+      - "what this means for you"
+      - "myth or real?"
+      - "the hidden detail nobody talks about"
+      - "before vs after"
+    senarist_notu: "Explain like to a smart friend. Mention the source name once."
+    aciklama_eki: "Follow for daily AI & tech news in 30 seconds."
+
+  - id: finans_tr
+    ad: ""
+    aktif: true
+    dil: tr
+    nis: "Kişisel finans, para yönetimi ve ekonomi gündemi; sade Türkçe, günlük hayata dönük"
+    ses: tr_TR-dfki-medium
+    ses_hizi: 1.05
+    gunluk_video: 1
+    yayin_saatleri: ["20:00"]
+    saat_dilimi: Europe/Istanbul
+    youtube_kategori: 27        # Eğitim
+    kelime_araligi: [60, 105]
+    otomatik_onay: false
+    trend:
+      youtube: {bolge: TR}
+      google_trends: {bolge: TR}
+      reddit: [Turkey, PersonalFinance]
+    formatlar:
+      - "3 maddede para ipucu"
+      - "bu haber cebini nasıl etkiler"
+      - "yaygın para hatası ve doğrusu"
+      - "rakamlarla kısa hesap"
+      - "doğru mu yanlış mı"
+    senarist_notu: "Yatırım tavsiyesi verme; belirli hisse/coin önermeden genel bilgi ver. Rakam verirsen kaynağını söyle."
+    aciklama_eki: "Bu video yatırım tavsiyesi değildir, genel bilgilendirme amaçlıdır."
+
+  - id: gta_en
+    ad: ""
+    aktif: true
+    dil: en
+    nis: "GTA news, hidden details, tips and permitted streamer clip commentary"
+    ses: en_US-ryan-high
+    ses_hizi: 1.1
+    gunluk_video: 1
+    yayin_saatleri: ["19:00"]
+    saat_dilimi: Europe/Istanbul
+    youtube_kategori: 20        # Oyun
+    kelime_araligi: [60, 110]
+    otomatik_onay: false
+    kaynak_modlari: [haber_yorum, izinli_klip]
+    klip_orani: 0.5             # izinli klip varsa videoların yarısı klip yorumu olur
+    klip_orijinal_ses: 0.25     # klibin kendi sesi, seslendirmenin altında %25
+    yerel_gorsel_adedi: 3       # gorseller/gta_en/ klasöründen eklenecek ekran görüntüsü sayısı
+    trend:
+      youtube: {bolge: US, kategori: 20}
+      google_trends: {bolge: US}
+      reddit: [GTA6, GTA, gtaonline]
+    formatlar:
+      - "GTA news + my take"
+      - "hidden detail you missed"
+      - "quick tip that saves you time"
+      - "rumor check: real or fake?"
+    klip_formatlari:
+      - "context of the clip + why it is funny/impressive + what we learn"
+      - "breakdown: what the streamer did right"
+    senarist_notu: "Do not use in-game radio music. Never claim leaks are confirmed. Credit the streamer by name in permitted clips."
+
+  # GTA'yı Türkçe denemek için: bu kanalı aktif: true yap ve ayrı bir YouTube kanalına bağla.
+  - id: gta_tr
+    ad: ""
+    aktif: false
+    dil: tr
+    nis: "GTA haberleri, gizli detaylar, ipuçları ve izinli yayıncı klipleri üzerine yorum"
+    ses: tr_TR-dfki-medium
+    ses_hizi: 1.08
+    gunluk_video: 1
+    yayin_saatleri: ["21:00"]
+    saat_dilimi: Europe/Istanbul
+    youtube_kategori: 20
+    kelime_araligi: [55, 100]
+    otomatik_onay: false
+    kaynak_modlari: [haber_yorum, izinli_klip]
+    klip_orani: 0.5
+    klip_orijinal_ses: 0.25
+    yerel_gorsel_adedi: 3
+    trend:
+      youtube: {bolge: TR, kategori: 20}
+      google_trends: {bolge: TR}
+      reddit: [GTA6, gtaonline]
+    formatlar:
+      - "GTA haberi + yorumum"
+      - "kaçırdığın gizli detay"
+      - "zaman kazandıran ipucu"
+      - "söylenti mi gerçek mi"
+    klip_formatlari:
+      - "klibin bağlamı + neden etkileyici + ne öğreniyoruz"
+    senarist_notu: "Oyun içi radyo müziği kullanma. Sızıntıları kesinleşmiş gibi anlatma. İzinli kliplerde yayıncının adını söyle."

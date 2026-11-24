@@ -1,0 +1,14 @@
+.env
+config/client_secret.json
+veri/
+klipler/*/
+izinler/
+gorseller/*/
+muzik/*
+!muzik/.gitkeep
+!klipler/.gitkeep
+!gorseller/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

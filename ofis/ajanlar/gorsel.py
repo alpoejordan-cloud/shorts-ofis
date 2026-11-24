@@ -1,0 +1,145 @@
+"""Görsel sorumlusu: videonun arka plan görüntülerini toplar.
+
+Kurallar:
+- Sadece lisansı uygun kaynaklar: Pexels/Pixabay, senin klasöre koyduğun görseller ve
+  izin belgesi kayıtlı yayıncıların klipleri.
+- İzin belgesi boş olan yayıncının klibi ASLA kullanılmaz.
+"""
+from __future__ import annotations
+
+import json
+import random
+import shutil
+from pathlib import Path
+from typing import Any
+
+import requests
+
+from ..cekirdek import KOK, VERI, Is, gunluk_al, isler, ortam, yaml_oku
+
+log = gunluk_al("gorsel")
+VIDEO_UZANTI = {".mp4", ".mov", ".mkv", ".webm"}
+RESIM_UZANTI = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+# ---- İzinli yayıncı klipleri ----
+
+def izinli_yayincilar() -> list[dict[str, Any]]:
+    liste = yaml_oku("izinler.yaml").get("izinli_yayincilar", []) or []
+    return [y for y in liste if str(y.get("izin_belgesi", "")).strip() and y.get("klasor")]
+
+
+def kullanilmis_klipler() -> set[str]:
+    return {i.veri.get("klip_yolu", "") for i in isler()} - {""}
+
+
+def klip_sec(k: dict[str, Any]) -> dict[str, Any] | None:
+    """İzinli ve daha önce kullanılmamış bir klip seçer; yoksa None."""
+    kullanilan = kullanilmis_klipler()
+    adaylar = []
+    for y in izinli_yayincilar():
+        if y.get("kanallar") and k["id"] not in y["kanallar"]:
+            continue
+        klasor = KOK / y["klasor"]
+        if not klasor.exists():
+            continue
+        for dosya in sorted(klasor.iterdir()):
+            if dosya.suffix.lower() in VIDEO_UZANTI and str(dosya) not in kullanilan:
+                aciklama_dosyasi = dosya.with_suffix(".txt")
+                adaylar.append({
+                    "yayinci": y["ad"],
+                    "klip_yolu": str(dosya),
+                    "klip_aciklama": aciklama_dosyasi.read_text(encoding="utf-8").strip()
+                    if aciklama_dosyasi.exists() else dosya.stem.replace("_", " "),
+                    "kredi": (y.get("kredi_metni") or "Klip: {ad} ({url}), izinle kullanılmıştır.").format(
+                        ad=y["ad"], url=y.get("kanal_url", "")
+                    ),
+                    "en_uzun_sn": y.get("en_uzun_sn", 30),
+                })
+    return random.choice(adaylar) if adaylar else None
+
+
+# ---- Pexels ----
+
+def pexels_video(arama: str, adet: int = 3) -> list[dict[str, Any]]:
+    anahtar = ortam("PEXELS_API_ANAHTARI")
+    if not anahtar:
+        return []
+    r = requests.get(
+        "https://api.pexels.com/videos/search",
+        params={"query": arama, "orientation": "portrait", "size": "medium", "per_page": adet},
+        headers={"Authorization": anahtar}, timeout=30,
+    )
+    r.raise_for_status()
+    sonuc = []
+    for v in r.json().get("videos", []):
+        dosyalar = [f for f in v.get("video_files", []) if (f.get("height") or 0) >= 1280 and f.get("link")]
+        if not dosyalar:
+            continue
+        en_iyi = min(dosyalar, key=lambda f: abs((f.get("height") or 0) - 1920))
+        sonuc.append({"id": v["id"], "link": en_iyi["link"], "sayfa": v.get("url", ""),
+                      "sahip": v.get("user", {}).get("name", ""), "sure": v.get("duration", 0)})
+    return sonuc
+
+
+def indir(url: str, hedef: Path) -> Path:
+    with requests.get(url, stream=True, timeout=120) as r:
+        r.raise_for_status()
+        with open(hedef, "wb") as f:
+            for parca in r.iter_content(1 << 16):
+                f.write(parca)
+    return hedef
+
+
+def yerel_gorseller(k: dict[str, Any]) -> list[Path]:
+    klasor = KOK / "gorseller" / k["id"]
+    if not klasor.exists():
+        return []
+    return [p for p in sorted(klasor.iterdir()) if p.suffix.lower() in RESIM_UZANTI | VIDEO_UZANTI]
+
+
+def topla(is_: Is, k: dict[str, Any]) -> None:
+    sahneler: list[dict[str, Any]] = []
+    lisans: list[str] = []
+    gorsel_klasoru = is_.klasor / "gorseller"
+    gorsel_klasoru.mkdir(exist_ok=True)
+
+    if is_.veri.get("mod") == "izinli_klip":
+        hedef = gorsel_klasoru / ("klip" + Path(is_.veri["klip_yolu"]).suffix)
+        shutil.copy2(is_.veri["klip_yolu"], hedef)
+        sahneler.append({"tur": "video", "yol": str(hedef), "en_uzun": is_.veri.get("en_uzun_sn", 30),
+                         "orijinal_ses": k.get("klip_orijinal_ses", 0.25)})
+        lisans.append(is_.veri.get("kredi", ""))
+    else:
+        kullanilan_pexels = set(json.loads((VERI / "pexels_kullanilan.json").read_text())
+                                if (VERI / "pexels_kullanilan.json").exists() else [])
+        for sira, kelime in enumerate(is_.veri.get("gorsel_kelimeler", [])):
+            try:
+                adaylar = [a for a in pexels_video(kelime) if a["id"] not in kullanilan_pexels]
+            except requests.RequestException as e:
+                log.warning("Pexels hatası (%s): %s", kelime, e)
+                adaylar = []
+            if not adaylar:
+                continue
+            secim = adaylar[0]
+            yol = indir(secim["link"], gorsel_klasoru / f"{sira:02d}_pexels_{secim['id']}.mp4")
+            sahneler.append({"tur": "video", "yol": str(yol)})
+            lisans.append(f"Pexels video {secim['id']} by {secim['sahip']} {secim['sayfa']}")
+            kullanilan_pexels.add(secim["id"])
+        (VERI / "pexels_kullanilan.json").write_text(json.dumps(sorted(kullanilan_pexels)))
+
+        # senin koyduğun görseller (ör. GTA ekran görüntüleri) varsa araya eklenir
+        yereller = yerel_gorseller(k)
+        random.shuffle(yereller)
+        for p in yereller[: k.get("yerel_gorsel_adedi", 3)]:
+            tur = "resim" if p.suffix.lower() in RESIM_UZANTI else "video"
+            sahneler.insert(min(len(sahneler), 1 + len(sahneler) // 2), {"tur": tur, "yol": str(p)})
+            lisans.append(f"Yerel görsel: {p.name}")
+
+    if not sahneler:
+        raise RuntimeError(
+            "Hiç görsel bulunamadı. .env içine PEXELS_API_ANAHTARI ekle veya "
+            f"gorseller/{k['id']}/ klasörüne görsel koy."
+        )
+    is_.veri.update({"sahneler": sahneler, "lisanslar": lisans})
+    log.info("%s: %d sahne hazır", is_.id, len(sahneler))

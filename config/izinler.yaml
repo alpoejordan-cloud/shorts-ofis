@@ -1,0 +1,18 @@
+# İzinli yayıncılar listesi.
+# KURAL: izin_belgesi alanı BOŞ olan yayıncının klibi sistem tarafından ASLA kullanılmaz.
+# İzni sen alırsın (mesaj şablonu: docs/IZIN_MESAJI.md), cevabın ekran görüntüsünü
+# izinler/ klasörüne koyup yolunu buraya yazarsın.
+#
+# Klipleri klasor alanındaki klasöre .mp4 olarak koy. İstersen her klibin yanına aynı adla
+# bir .txt koyup klipte ne olduğunu bir cümleyle yaz (senaryo daha iyi olur).
+
+izinli_yayincilar:
+  - ad: "Örnek Yayıncı"
+    kanal_url: "https://www.youtube.com/@ornek"
+    izin_tarihi: ""
+    izin_belgesi: ""            # örn: izinler/ornek_yayinci_eposta.png  (BOŞSA KULLANILMAZ)
+    kurallar: "Kaynak göster, klip en fazla 30 saniye"
+    en_uzun_sn: 30
+    kanallar: [gta_en, gta_tr]
+    klasor: klipler/ornek_yayinci
+    kredi_metni: "Klip: {ad} ({url}), yazılı izinle kullanılmıştır."

@@ -1,0 +1,151 @@
+"""Seslendirme: senaryoyu Piper (açık kaynak, bilgisayarda çalışır) ile sese çevirir,
+faster-whisper ile kelime zamanlarını çıkarıp altyazı dosyası yazar."""
+from __future__ import annotations
+
+import wave
+from pathlib import Path
+from typing import Any
+
+import requests
+
+from ..cekirdek import SESLER, Is, gunluk_al
+
+log = gunluk_al("seslendirme")
+
+HF = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+
+def ses_yolu(ses_adi: str) -> Path:
+    return SESLER / f"{ses_adi}.onnx"
+
+
+def ses_indir(ses_adi: str) -> Path:
+    """Örn. 'tr_TR-dfki-medium' -> tr/tr_TR/dfki/medium/tr_TR-dfki-medium.onnx"""
+    hedef = ses_yolu(ses_adi)
+    if hedef.exists() and Path(str(hedef) + ".json").exists():
+        return hedef
+    yerel, isim, kalite = ses_adi.split("-", 2)
+    dil = yerel.split("_")[0]
+    for uzanti in (".onnx", ".onnx.json"):
+        url = f"{HF}/{dil}/{yerel}/{isim}/{kalite}/{ses_adi}{uzanti}"
+        log.info("Ses indiriliyor: %s", url)
+        r = requests.get(url, timeout=300)
+        r.raise_for_status()
+        Path(str(SESLER / ses_adi) + uzanti).write_bytes(r.content)
+    return hedef
+
+
+_SES_ONBELLEK: dict[str, Any] = {}
+
+
+def _ses_yukle(ses_adi: str):
+    if ses_adi not in _SES_ONBELLEK:
+        from piper import PiperVoice  # ağır modül, gerektiğinde yüklenir
+
+        _SES_ONBELLEK[ses_adi] = PiperVoice.load(str(ses_indir(ses_adi)))
+    return _SES_ONBELLEK[ses_adi]
+
+
+def sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float = 1.0) -> float:
+    ses = _ses_yukle(ses_adi)
+    with wave.open(str(cikis), "wb") as wf:
+        if hasattr(ses, "synthesize_wav"):  # piper-tts 1.3+
+            try:
+                from piper import SynthesisConfig
+
+                ses.synthesize_wav(metin, wf, syn_config=SynthesisConfig(length_scale=1.0 / hiz))
+            except ImportError:
+                ses.synthesize_wav(metin, wf)
+        else:  # eski piper-tts
+            ses.synthesize(metin, wf, length_scale=1.0 / hiz)
+    with wave.open(str(cikis), "rb") as wf:
+        return wf.getnframes() / float(wf.getframerate())
+
+
+# ---- Altyazı ----
+
+def kelimeleri_grupla(kelimeler: list[dict[str, Any]], en_fazla: int = 3) -> list[dict[str, Any]]:
+    """Kelime zamanlarını ekranda 1-3 kelimelik parçalara böler."""
+    gruplar: list[dict[str, Any]] = []
+    simdiki: list[dict[str, Any]] = []
+    for k in kelimeler:
+        simdiki.append(k)
+        noktalama = k["kelime"].rstrip().endswith((".", ",", "!", "?", ":", ";"))
+        if len(simdiki) >= en_fazla or noktalama:
+            gruplar.append({"bas": simdiki[0]["bas"], "son": simdiki[-1]["son"],
+                            "metin": " ".join(x["kelime"].strip() for x in simdiki)})
+            simdiki = []
+    if simdiki:
+        gruplar.append({"bas": simdiki[0]["bas"], "son": simdiki[-1]["son"],
+                        "metin": " ".join(x["kelime"].strip() for x in simdiki)})
+    return gruplar
+
+
+def _ass_zaman(sn: float) -> str:
+    sn = max(sn, 0.0)
+    s, kalan = divmod(sn, 3600)
+    d, kalan = divmod(kalan, 60)
+    return f"{int(s)}:{int(d):02d}:{kalan:05.2f}"
+
+
+def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None) -> None:
+    stil = stil or {}
+    yazi = stil.get("yazi_tipi", "Arial")
+    boyut = stil.get("boyut", 86)
+    renk = stil.get("renk", "&H00FFFFFF")
+    vurgu = stil.get("vurgu", "&H0000E5FF")
+    satirlar = [
+        "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "",
+        "[V4+ Styles]",
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, "
+        "Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
+        "MarginL, MarginR, MarginV, Encoding",
+        f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,2,5,80,80,0,1",
+        "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    ]
+    for g in gruplar:
+        metin = g["metin"].replace("{", "(").replace("}", ")").upper()
+        satirlar.append(
+            f"Dialogue: 0,{_ass_zaman(g['bas'])},{_ass_zaman(g['son'] + 0.05)},Ana,,0,0,0,,"
+            f"{{\\fad(60,0)\\t(0,90,\\fscx112\\fscy112)\\t(90,180,\\fscx100\\fscy100)}}{metin}"
+        )
+    cikis.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
+
+
+def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel("small", device="cpu", compute_type="int8")
+    parcalar, _ = model.transcribe(str(ses_dosyasi), language=dil, word_timestamps=True, vad_filter=False)
+    return [
+        {"kelime": w.word, "bas": w.start, "son": w.end}
+        for p in parcalar for w in (p.words or [])
+    ]
+
+
+def tahmini_zamanlar(metin: str, sure: float) -> list[dict[str, Any]]:
+    """Whisper kullanılamazsa: kelimeleri uzunluklarına göre süreye yayar."""
+    kelimeler = metin.split()
+    agirlik = [len(k) + 2 for k in kelimeler]
+    toplam = sum(agirlik) or 1
+    t, sonuc = 0.0, []
+    for k, a in zip(kelimeler, agirlik):
+        d = sure * a / toplam
+        sonuc.append({"kelime": k, "bas": t, "son": t + d})
+        t += d
+    return sonuc
+
+
+def seslendir(is_: Is, k: dict[str, Any]) -> None:
+    ses_dosyasi = is_.klasor / "ses.wav"
+    sure = sentezle(is_.veri["senaryo"], k["ses"], ses_dosyasi, hiz=k.get("ses_hizi", 1.08))
+    try:
+        zamanlar = kelime_zamanlari(ses_dosyasi, k["dil"])
+    except Exception as e:
+        log.warning("%s: whisper çalışmadı (%s), tahmini altyazı kullanılıyor", is_.id, e)
+        zamanlar = []
+    if not zamanlar:
+        zamanlar = tahmini_zamanlar(is_.veri["senaryo"], sure)
+    ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"))
+    is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2)})
+    log.info("%s: ses hazır (%.1f sn)", is_.id, sure)

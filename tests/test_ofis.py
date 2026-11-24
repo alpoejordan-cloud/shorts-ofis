@@ -133,3 +133,17 @@ def test_mudur_hatada_tekrar_dener_sonra_birakir(monkeypatch):
     for _ in range(mudur.EN_FAZLA_DENEME):
         mudur.is_ilerlet(i)
     assert i.durum == "hata" and len(i.hatalar) == mudur.EN_FAZLA_DENEME
+
+
+def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
+    def sahte_ai(istem, hedef, seed=0):
+        hedef.write_bytes(b"x")
+        return hedef
+
+    monkeypatch.setattr(gorsel, "ai_gorsel", sahte_ai)
+    monkeypatch.setattr(gorsel, "pexels_video", lambda kelime, adet=3: [])
+    monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
+    i = cekirdek.Is(kanal="gta_en", veri={"gorsel_kelimeler": ["a", "b", "c", "d", "e"]})
+    gorsel.topla(i, cekirdek.kanal("gta_en"))
+    assert [s["tur"] for s in i.veri["sahneler"]] == ["resim"] * 4
+    assert i.veri["yapay_icerik"] is True

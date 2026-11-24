@@ -12,7 +12,7 @@
 | Trend araştırmacı | `ofis/ajanlar/trend.py` | YouTube, Google Trends ve Reddit'ten kanalın nişine uyan konuları seçer |
 | Senarist | `ofis/ajanlar/senarist.py` | Başlık, seslendirme metni, açıklama, etiket; her videoda farklı format |
 | Seslendirme | `ofis/ajanlar/seslendirme.py` | Piper ile ses, Whisper ile kelime kelime altyazı |
-| Görsel sorumlusu | `ofis/ajanlar/gorsel.py` | Pexels stok videoları, senin görsellerin, izinli yayıncı klipleri |
+| Görsel sorumlusu | `ofis/ajanlar/gorsel.py` | Pexels stok videoları, yapay zeka görselleri, senin görsellerin |
 | Kurgu | `ofis/ajanlar/kurgu.py` | 1080x1920 video, altyazı, ses ve müzik (FFmpeg) |
 | Onay masası | `ofis/ajanlar/onay.py` | Tarayıcıda videoları izleyip onayladığın sayfa |
 | Yükleyici | `ofis/ajanlar/yukleyici.py` | YouTube API ile yükler, kanalın yayın saatine zamanlar |
@@ -30,8 +30,8 @@ Akış: `fikir → senaryo → ses → gorsel → video → onay_bekliyor → on
 
 ## Kurallar (değiştirme)
 
-- Başkasının videosu izinsiz kullanılmaz. Yayıncı klipleri sadece `config/izinler.yaml` içinde
-  `izin_belgesi` dolu olan yayıncılardan alınır. İzin mesajı şablonu: [docs/IZIN_MESAJI.md](docs/IZIN_MESAJI.md).
+- Başkasının videosu indirilip yeniden yüklenmez (telif ihtarı ve para kazanamama riski). Görüntüler
+  stok videolardan ve her video için yeniden üretilen yapay zeka görsellerinden gelir.
 - Görseller sadece lisanslı kaynaklardan (Pexels, senin dosyaların). Müzik için YouTube Ses Kütüphanesi'nden
   indirdiğin parçaları `muzik/` klasörüne koy.
 - Gerçekçi yapay zeka içeriği YouTube'a "değiştirilmiş/sentetik içerik" olarak bildirilir.

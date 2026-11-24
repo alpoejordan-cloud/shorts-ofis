@@ -59,7 +59,7 @@ kanallar:
     ad: ""
     aktif: true
     dil: en
-    nis: "GTA news, hidden details, tips and permitted streamer clip commentary"
+    nis: "GTA news, rumors checked, hidden details and tips, with original commentary"
     ses: en_US-ryan-high
     ses_hizi: 1.1
     gunluk_video: 1
@@ -68,10 +68,10 @@ kanallar:
     youtube_kategori: 20        # Oyun
     kelime_araligi: [60, 110]
     otomatik_onay: false
-    kaynak_modlari: [haber_yorum, izinli_klip]
-    klip_orani: 0.5             # izinli klip varsa videoların yarısı klip yorumu olur
-    klip_orijinal_ses: 0.25     # klibin kendi sesi, seslendirmenin altında %25
-    yerel_gorsel_adedi: 3       # gorseller/gta_en/ klasöründen eklenecek ekran görüntüsü sayısı
+    kaynak_modlari: [haber_yorum]   # izinli_klip eklenirse klasördeki izinli klipler de kullanılır
+    ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne
+    ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"
+    yerel_gorsel_adedi: 3       # gorseller/gta_en/ klasörüne kendi koyduğun görsellerden eklenecek sayı
     trend:
       youtube: {bolge: US, kategori: 20}
       google_trends: {bolge: US}
@@ -91,7 +91,7 @@ kanallar:
     ad: ""
     aktif: false
     dil: tr
-    nis: "GTA haberleri, gizli detaylar, ipuçları ve izinli yayıncı klipleri üzerine yorum"
+    nis: "GTA haberleri, söylenti kontrolü, gizli detaylar ve ipuçları, özgün yorumla"
     ses: tr_TR-dfki-medium
     ses_hizi: 1.08
     gunluk_video: 1
@@ -100,9 +100,9 @@ kanallar:
     youtube_kategori: 20
     kelime_araligi: [55, 100]
     otomatik_onay: false
-    kaynak_modlari: [haber_yorum, izinli_klip]
-    klip_orani: 0.5
-    klip_orijinal_ses: 0.25
+    kaynak_modlari: [haber_yorum]
+    ai_gorsel_adedi: 4
+    ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"
     yerel_gorsel_adedi: 3
     trend:
       youtube: {bolge: TR, kategori: 20}

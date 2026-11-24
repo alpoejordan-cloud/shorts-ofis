@@ -82,6 +82,21 @@ def pexels_video(arama: str, adet: int = 3) -> list[dict[str, Any]]:
     return sonuc
 
 
+def ai_gorsel(istem: str, hedef: Path, seed: int = 0) -> Path:
+    """Ücretsiz Pollinations servisiyle 1080x1920 görsel üretir (anahtar gerekmez).
+    Adres .env içindeki AI_GORSEL_ADRESI ile değiştirilebilir."""
+    from urllib.parse import quote
+
+    taban = ortam("AI_GORSEL_ADRESI", "https://image.pollinations.ai/prompt/")
+    url = f"{taban}{quote(istem)}?width=1080&height=1920&nologo=true&seed={seed}"
+    r = requests.get(url, timeout=180)
+    r.raise_for_status()
+    if not r.headers.get("Content-Type", "").startswith("image/") or len(r.content) < 5000:
+        raise RuntimeError("servis görsel döndürmedi")
+    hedef.write_bytes(r.content)
+    return hedef
+
+
 def indir(url: str, hedef: Path) -> Path:
     with requests.get(url, stream=True, timeout=120) as r:
         r.raise_for_status()
@@ -127,6 +142,26 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
             lisans.append(f"Pexels video {secim['id']} by {secim['sahip']} {secim['sayfa']}")
             kullanilan_pexels.add(secim["id"])
         (VERI / "pexels_kullanilan.json").write_text(json.dumps(sorted(kullanilan_pexels)))
+
+        # yapay zeka görselleri (izin gerektirmez; her video için yeni üretilir)
+        ai_adet = int(k.get("ai_gorsel_adedi", 0))
+        if ai_adet:
+            istemler = (is_.veri.get("gorsel_kelimeler") or [is_.veri.get("konu", "")])[:ai_adet]
+            uretilen = 0
+            for sira, istem in enumerate(istemler):
+                hedef = gorsel_klasoru / f"ai_{sira:02d}.jpg"
+                tam_istem = f"{istem}, {k.get('ai_stil', 'cinematic, vertical composition, highly detailed')}"
+                try:
+                    ai_gorsel(tam_istem, hedef, seed=abs(hash((is_.id, sira))) % 10**6)
+                except Exception as e:
+                    log.warning("AI görsel üretilemedi (%s): %s", istem, e)
+                    continue
+                konum = min(len(sahneler), sira * 2)
+                sahneler.insert(konum, {"tur": "resim", "yol": str(hedef)})
+                lisans.append(f"Yapay zeka görseli: {tam_istem}")
+                uretilen += 1
+            if uretilen:
+                is_.veri["yapay_icerik"] = True  # YouTube'a sentetik içerik olarak bildirilir
 
         # senin koyduğun görseller (ör. GTA ekran görüntüleri) varsa araya eklenir
         yereller = yerel_gorseller(k)

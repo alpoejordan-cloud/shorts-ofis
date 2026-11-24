@@ -58,6 +58,10 @@ def klip_sec(k: dict[str, Any]) -> dict[str, Any] | None:
                     # kampanyanın istediği bilgilendirme (ör. "Clip from @streamer's stream"), ilk 2 sn ekranda
                     "acilis_notu": str(y.get("acilis_notu") or "").strip(),
                     "kampanya": y.get("izin_belgesi", ""),
+                    # yayinci_sesi: seslendirme yok, yayıncının kendi sesi korunur (kampanya kuralı)
+                    "yayinci_sesi": bool(y.get("yayinci_sesi", False)),
+                    "kapanis_notu": str(y.get("kapanis_notu") or "").strip(),
+                    "zorunlu_etiketler": [str(e) for e in (y.get("zorunlu_etiketler") or [])],
                 })
     return random.choice(adaylar) if adaylar else None
 
@@ -279,7 +283,8 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
         hedef = gorsel_klasoru / ("klip" + Path(is_.veri["klip_yolu"]).suffix)
         shutil.copy2(is_.veri["klip_yolu"], hedef)
         sahneler.append({"tur": "video", "yol": str(hedef), "en_uzun": is_.veri.get("en_uzun_sn", 30),
-                         "orijinal_ses": k.get("klip_orijinal_ses", 0.25)})
+                         # yayıncı sesi modunda klip sesi zaten ana ses (ses.wav), ayrıca karıştırılmaz
+                         "orijinal_ses": 0 if is_.veri.get("yayinci_sesi") else k.get("klip_orijinal_ses", 0.25)})
         lisans.append(is_.veri.get("kredi", ""))
     else:
         kullanilan_pexels = set(json.loads((VERI / "pexels_kullanilan.json").read_text())

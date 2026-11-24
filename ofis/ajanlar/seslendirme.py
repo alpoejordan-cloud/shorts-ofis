@@ -98,8 +98,18 @@ def _ass_zaman(sn: float) -> str:
 _DIL = {"dil": "en"}
 
 
+_KUFUR = __import__("re").compile(
+    r"\b(fuck\w*|motherfuck\w*|shit(s|ty|ting)?|bitch(es)?|asshole(s)?|dick(s|head)?|pussy|cunt(s)?|nigg\w*|"
+    r"amk|aq|siktir\w*|orospu\w*|piç\w*)\b", __import__("re").IGNORECASE)
+
+
+def kufur_maskele(metin: str) -> str:
+    """Ekrandaki altyazıda küfürleri maskeler (ses değişmez): fuck -> f***"""
+    return _KUFUR.sub(lambda m: m.group(0)[0] + "*" * (len(m.group(0)) - 1), metin)
+
+
 def _temiz(metin: str) -> str:
-    metin = metin.replace("{", "(").replace("}", ")").replace("\\", "/")
+    metin = kufur_maskele(metin.replace("{", "(").replace("}", ")").replace("\\", "/"))
     if _DIL["dil"] == "tr":  # Türkçe büyük harf: i -> İ, ı -> I
         metin = metin.replace("i", "İ").replace("ı", "I")
     return metin.upper()
@@ -107,7 +117,7 @@ def _temiz(metin: str) -> str:
 
 def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
             kanca: str | None = None, toplam: float | None = None, dil: str = "en",
-            acilis_notu: str | None = None, acilis_sure: float = 2.0) -> None:
+            acilis_notu: str | None = None, acilis_sure: float = 2.0, kapanis: str | None = None) -> None:
     """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
     altta ilerleme çubuğu."""
     _DIL["dil"] = dil
@@ -165,6 +175,11 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
             metin = f"{{\\c{vurgu}}}" + " ".join(sozler)
         satirlar.append(f"Dialogue: 2,0:00:00.00,{_ass_zaman(kanca_sure)},Kanca,,0,0,0,,"
                         f"{{\\fad(0,250)\\t(0,140,\\fscx112\\fscy112)\\t(140,280,\\fscx100\\fscy100)}}{metin}")
+    if kapanis and toplam:  # kampanyanın istediği çağrı (CTA): son 3 saniye, ekran ortasında
+        temiz_k = kapanis.replace("{", "(").replace("}", ")").replace("\\", "/")
+        satirlar.append(f"Dialogue: 2,{_ass_zaman(max(toplam - 3.0, 0))},{_ass_zaman(toplam)},Kanca,,0,0,0,,"
+                        f"{{\\an5\\pos(540,760)\\fad(200,0)\\t(0,160,\\fscx110\\fscy110)\\t(160,320,\\fscx100\\fscy100)}}"
+                        f"{temiz_k}")
     if acilis_notu:  # kampanyanın zorunlu bilgilendirmesi: ilk saniyelerde, en üstte, büyük harfe çevrilmeden
         temiz = acilis_notu.replace("{", "(").replace("}", ")").replace("\\", "/")
         satirlar.append(f"Dialogue: 3,0:00:00.00,{_ass_zaman(acilis_sure)},Not,,0,0,0,,{{\\fad(0,200)}}{temiz}")
@@ -197,11 +212,22 @@ def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
 
     model = WhisperModel("small", device="cpu", compute_type="int8")
     # Sesi FFmpeg ile 16 kHz diziye çeviriyoruz; böylece PyAV sürüm uyumsuzlukları sorun olmaz
-    parcalar, _ = model.transcribe(ses_dizisi(ses_dosyasi), language=dil, word_timestamps=True, vad_filter=False)
-    return [
-        {"kelime": w.word, "bas": w.start, "son": w.end}
-        for p in parcalar for w in (p.words or [])
-    ]
+    dizi = ses_dizisi(ses_dosyasi)
+    try:
+        parcalar, _ = model.transcribe(dizi, language=dil, word_timestamps=True, vad_filter=False)
+        return [
+            {"kelime": w.word, "bas": w.start, "son": w.end}
+            for p in parcalar for w in (p.words or [])
+        ]
+    except (ValueError, IndexError) as e:
+        # Oyun/müzik ağırlıklı seslerde kelime hizalama çökebiliyor: cümle zamanlarıyla devam
+        log.warning("Kelime zamanları alınamadı (%s), cümle zamanları kullanılıyor", e)
+        parcalar, _ = model.transcribe(dizi, language=dil, word_timestamps=False, vad_filter=True)
+        sonuc: list[dict[str, Any]] = []
+        for p in parcalar:
+            for z in tahmini_zamanlar(p.text.strip(), max(p.end - p.start, 0.1)):
+                sonuc.append({"kelime": z["kelime"], "bas": p.start + z["bas"], "son": p.start + z["son"]})
+        return sonuc
 
 
 def tahmini_zamanlar(metin: str, sure: float) -> list[dict[str, Any]]:
@@ -217,7 +243,35 @@ def tahmini_zamanlar(metin: str, sure: float) -> list[dict[str, Any]]:
     return sonuc
 
 
+def klip_sesini_kullan(is_: Is, k: dict[str, Any]) -> None:
+    """Yayıncı sesi modu: TTS yok; klibin kendi sesi ana ses olur, altyazı yayıncının konuşmasından çıkarılır."""
+    import shutil
+    import subprocess
+
+    ses_dosyasi = is_.klasor / "ses.wav"
+    en_uzun = float(is_.veri.get("en_uzun_sn", 58))
+    subprocess.run([shutil.which("ffmpeg") or "ffmpeg", "-y", "-v", "error", "-i", is_.veri["klip_yolu"],
+                    "-t", f"{en_uzun:.2f}", "-vn", "-ac", "1", "-ar", "22050", str(ses_dosyasi)], check=True)
+    with wave.open(str(ses_dosyasi), "rb") as wf:
+        sure = wf.getnframes() / float(wf.getframerate())
+    try:
+        zamanlar = kelime_zamanlari(ses_dosyasi, k["dil"])
+    except Exception as e:
+        log.warning("%s: whisper çalışmadı (%s), altyazısız devam", is_.id, e)
+        zamanlar = []
+    zamanlar = [{"kelime": str(z["kelime"]), "bas": round(float(z["bas"]), 3), "son": round(float(z["son"]), 3)}
+                for z in zamanlar]
+    ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"),
+            kanca=is_.veri.get("kanca_metni"), toplam=sure, dil=k.get("dil", "en"),
+            acilis_notu=is_.veri.get("acilis_notu") or None, kapanis=is_.veri.get("kapanis_notu") or None)
+    is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2),
+                     "kelime_zamanlari": zamanlar})
+    log.info("%s: yayıncı sesi kullanılıyor (%.1f sn)", is_.id, sure)
+
+
 def seslendir(is_: Is, k: dict[str, Any]) -> None:
+    if is_.veri.get("yayinci_sesi"):
+        return klip_sesini_kullan(is_, k)
     ses_dosyasi = is_.klasor / "ses.wav"
     sure = sentezle(is_.veri["senaryo"], k["ses"], ses_dosyasi, hiz=k.get("ses_hizi", 1.08))
     try:

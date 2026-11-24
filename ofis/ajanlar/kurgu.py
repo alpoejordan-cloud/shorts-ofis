@@ -279,7 +279,8 @@ def altyazi_yenile(is_: Is, k: dict[str, Any], toplam: float) -> None:
     kanca = is_.veri.get("kanca_metni") or (kanca_duzelt(is_.veri) if is_.veri.get("baslik") else None)
     seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass",
                         k.get("altyazi"), kanca=kanca, toplam=toplam, dil=k.get("dil", "en"),
-                        acilis_notu=is_.veri.get("acilis_notu") or None)
+                        acilis_notu=is_.veri.get("acilis_notu") or None,
+                        kapanis=is_.veri.get("kapanis_notu") or None)
 
 
 def kurgula(is_: Is, k: dict[str, Any]) -> None:
@@ -291,9 +292,11 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
         klip = sahneler[0]
         sure = min(sure, float(klip.get("en_uzun", 30)) + 0.6) if klip.get("en_uzun") else sure
         sure = max(sure, float(is_.veri["sure"]) + 0.3)
+        if is_.veri.get("yayinci_sesi"):  # ses klibin kendisi: süre tam klip kadar
+            sure = float(is_.veri["sure"])
         plan = [{"sahne": klip, "tekrar": 0, "hareket": "yakin", "sure": sure, "gecis": "fade"}]
-        if klip.get("orijinal_ses"):
-            klip_sesi = (str(Path(klip["yol"]).resolve()), float(klip["orijinal_ses"]))
+        if klip.get("orijinal_ses") and not is_.veri.get("yayinci_sesi"):
+            klip_sesi =(str(Path(klip["yol"]).resolve()), float(klip["orijinal_ses"]))
     else:
         plan = kesim_plani(sahneler, sure, float(k.get("kesme_sn", 2.4)), tohum=is_.id)
 
@@ -313,7 +316,8 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
         calistir(whoosh_komutu(anlar, sure), klasor)
         gecis_sesi = "gecis.wav"
     altyazi_yenile(is_, k, sure)
-    muzik = muzik_sec(k)
+    # yayıncı klibinde ses aynen korunur (kampanya kuralı): müzik eklenmez
+    muzik = None if is_.veri.get("yayinci_sesi") else muzik_sec(k)
     calistir(final_komutu(sure, muzik, klip_sesi, k.get("muzik_seviyesi", 0.08), gecis_sesi,
                           k.get("gecis_seviyesi", 0.35)), klasor)
     if muzik:

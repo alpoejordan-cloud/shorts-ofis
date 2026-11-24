@@ -134,7 +134,54 @@ def gorsel_kelimeleri_ingilizce(kelimeler: list[str], dil: str = "en") -> list[s
     return kelimeler
 
 
+def klip_metni_yaz(is_: Is, k: dict[str, Any]) -> None:
+    """Yayıncı sesi korunan kampanya klipleri: seslendirme yazılmaz; sadece başlık, kanca, açıklama, etiket."""
+    fikir = is_.veri
+    dil_adi = DIL_ADI.get(k["dil"], k["dil"])
+    sistem = (f"You write titles for a YouTube Shorts channel that posts permitted streamer clips. Write in {dil_adi}. "
+              "Never invent what happens in the clip beyond the given description. No clickbait lies. JSON only.")
+    kullanici = f"""Streamer: {fikir.get('yayinci')}
+Clip description: {fikir.get('klip_aciklama', '')}
+You do NOT know anything about the clip beyond its title/description. Use only those facts.
+JSON fields:
+- "baslik": title under 70 characters that names the streamer, ends with #shorts
+- "kanca_metni": on-screen hook for the first 3 seconds, 3 to 6 words, built ONLY from words in the clip title, no numbers that are not in the title, no hashtags, no emojis
+- "aciklama": 1-2 sentence description of the moment
+- "etiketler": 5-10 tags"""
+    s: Any = None
+    for _ in range(3):
+        s = sor_json(sistem, kullanici, sicaklik=0.8)
+        if isinstance(s, dict) and s.get("baslik") and len(str(s["baslik"])) <= 95:
+            break
+    else:
+        s = {"baslik": f"{fikir.get('yayinci', '')}: {fikir.get('klip_aciklama', '')}"[:60] + " #shorts"}
+    # kanca klipte olmayan bir şey uydurmasın: başlıkla ortak kelimesi yoksa klip başlığı kullanılır
+    import re as _re
+
+    kaynak = str(fikir.get("klip_aciklama", "")).lower()
+    sozler = [w for w in _re.findall(r"[a-z0-9]+", str(s.get("kanca_metni", "")).lower()) if len(w) > 2]
+    if not sozler or not all(w in kaynak for w in sozler if w.isdigit()) or not any(w in kaynak for w in sozler):
+        baslik_kismi = _re.search(r"'([^']+)'", str(fikir.get("klip_aciklama", "")))
+        s["kanca_metni"] = (baslik_kismi.group(1) if baslik_kismi else str(fikir.get("yayinci", ""))).strip()
+    etiketler = list(fikir.get("zorunlu_etiketler") or [])
+    aciklama = "\n\n".join(x for x in [fikir.get("kredi", ""), str(s.get("aciklama", "")).strip(),
+                                       " ".join(etiketler)] if x)
+    is_.veri.update({
+        "format": "yayıncı klibi (orijinal ses)",
+        "baslik": str(s["baslik"]).strip(),
+        "senaryo": "",
+        "aciklama": aciklama,
+        "etiketler": [str(e) for e in s.get("etiketler", [])][:15] + [e.lstrip("#") for e in etiketler],
+        "gorsel_kelimeler": [],
+        "kanca_metni": kanca_duzelt(s),
+        "yapay_icerik": False,
+    })
+    log.info("%s: klip metni hazır: %s", is_.id, is_.veri["baslik"])
+
+
 def yaz(is_: Is, k: dict[str, Any]) -> None:
+    if is_.veri.get("mod") == "izinli_klip" and is_.veri.get("yayinci_sesi"):
+        return klip_metni_yaz(is_, k)
     fikir = konuyu_cevir(is_.veri, k)
     mod = fikir.get("mod", "normal")
     fmt = format_sec(k, mod)

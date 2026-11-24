@@ -43,7 +43,8 @@ def test_senaryo_dogrulama():
 def test_izin_belgesi_olmayan_yayinci_kullanilmaz():
     # örnek yayıncının izin_belgesi boş: listede olmamalı
     assert all(y["ad"] != "Örnek Yayıncı" for y in gorsel.izinli_yayincilar())
-    assert gorsel.klip_sec(cekirdek.kanal("gta_en")) is None
+    secim = gorsel.klip_sec(cekirdek.kanal("gta_en"))
+    assert secim is None or secim["yayinci"] != "Örnek Yayıncı"
 
 
 def test_altyazi_gruplama_ve_ass(tmp_path):
@@ -269,6 +270,25 @@ def test_acilis_notu_ilk_iki_saniyede(tmp_path):
     satir = [s for s in yol.read_text(encoding="utf-8").splitlines() if ",Not,," in s]
     assert len(satir) == 1 and satir[0].startswith("Dialogue: 3,0:00:00.00,0:00:02.00,")
     assert "Clip from @Dom's stream" in satir[0]
+
+
+def test_kampanya_yayincilari_izin_belgesiyle_gelir():
+    adlar = {y["ad"]: y for y in gorsel.izinli_yayincilar()}
+    assert "Bobby VanRiper" in adlar and "Dasgasd3m (Dom)" in adlar
+    assert all(y["izin_belgesi"].startswith("https://contentrewards.com/") for y in adlar.values())
+    assert all(y.get("yayinci_sesi") for y in adlar.values())
+
+
+def test_ass_kapanis_cagrisi_son_uc_saniye(tmp_path):
+    yol = tmp_path / "k.ass"
+    seslendirme.ass_yaz([], yol, toplam=20.0, kapanis="Follow Bobby on Twitch")
+    satir = [s for s in yol.read_text(encoding="utf-8").splitlines() if "Follow Bobby" in s]
+    assert satir and satir[0].startswith("Dialogue: 2,0:00:17.00,0:00:20.00,Kanca")
+
+
+def test_altyazida_kufur_maskelenir():
+    assert seslendirme.kufur_maskele("get the fuck out, shit") == "get the f*** out, s***"
+    assert seslendirme.kufur_maskele("Dickens classic") == "Dickens classic"
 
 
 def test_kanca_metni_alti_kelimeyi_gecmez():

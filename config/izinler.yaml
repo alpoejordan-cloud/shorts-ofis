@@ -17,3 +17,48 @@ izinli_yayincilar:
     klasor: klipler/ornek_yayinci
     kredi_metni: "Klip: {ad} ({url}), yazılı izinle kullanılmıştır."
     acilis_notu: ""             # kampanya isterse ilk 2 sn ekranda: örn "Clip from @ornek's stream"
+    # yayinci_sesi: true  -> seslendirme yok, yayıncının kendi sesi + konuşma altyazısı (kampanya isterse)
+    # kapanis_notu: ""    -> son 3 sn ekranda çağrı (CTA)
+    # zorunlu_etiketler: [] -> açıklamaya eklenecek zorunlu hashtag'ler
+
+  # Content Rewards kampanyaları (2026-11-24 katılındı). İzin belgesi = kampanya sayfası.
+  - ad: "Dasgasd3m (Dom)"
+    kanal_url: "https://kick.com/dasgasd3m"
+    izin_tarihi: "2026-11-24"
+    izin_belgesi: "https://contentrewards.com/c/campaigns/051002dd-5c46-43d0-a446-43f2957ba3a9"
+    kurallar: >-
+      Dasgasd3m x RUCKUS | GTA 6. Kaynak: yalnız Dom'un kick.com/dasgasd3m GTA 6 yayınları (canlı/VOD);
+      sızıntı, fragman, başka yayın yok. Orijinal ses korunur; başka dilde AI altyazı/seslendirme yok.
+      Kurulum + tepki + sonuç korunur, spoiler kapakta verilmez. Yetişkin şakalar ve platform dışı içerik seçilmez.
+      Kredi: Kick'te dasgasd3m, kick.com/dasgasd3m yönlendirmesi, #dasgasdom3. Paylaşım linki 30 dk içinde
+      Content Rewards'a gönderilir; her video tek kampanyaya. Ödeme: 1K izlenme $2, min $20, max $150.
+      Son tarih: 19 Aralık 2026 23:59 PST.
+    en_uzun_sn: 58
+    kanallar: [gta_en]
+    klasor: klipler/dasgasd3m
+    kredi_metni: "Clip: dasgasd3m on Kick. Watch Dom live: {url} #dasgasdom3"
+    acilis_notu: "Clip: dasgasd3m on Kick"
+    kapanis_notu: "Watch Dom live: kick.com/dasgasd3m"
+    yayinci_sesi: true
+    zorunlu_etiketler: ["#dasgasdom3", "#GTA6"]
+
+  - ad: "Bobby VanRiper"
+    kanal_url: "https://www.twitch.tv/bobby_vanriper"
+    izin_tarihi: "2026-11-24"
+    izin_belgesi: "https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c"
+    kurallar: >-
+      BOBBY VAN RIPER GTA VI Clipping (Clipping Nation). Kaynak: Bobby'nin GTA VI yayın/videoları
+      (Twitch klipleri önerilir). Yapı: ilk 2 sn kanca, tek net komik/şaşırtıcı an, CTA "follow Bobby
+      Vanriper on Twitch". Ödeme: 1K izlenme $1.50, en az 1.500 izlenme, video başı max $150.
+      Ödeme için Clipping Nation Discord'una katılmak şart.
+    en_uzun_sn: 58
+    kanallar: [gta_en]
+    klasor: klipler/bobby_vanriper
+    kredi_metni: "Clip: Bobby VanRiper. Follow Bobby Vanriper on Twitch: {url}"
+    acilis_notu: "Clip: Bobby VanRiper (Twitch)"
+    kapanis_notu: "Follow Bobby Vanriper on Twitch"
+    yayinci_sesi: true
+    zorunlu_etiketler: ["#GTA6", "#BobbyVanRiper"]
+
+  # Not: "$5,000 Lauren Hamden GTA 6" kampanyasına katılındı ama yalnız Instagram'a ödeme yapıyor;
+  # YouTube kanalımız için geçerli değil, bu yüzden listeye eklenmedi.

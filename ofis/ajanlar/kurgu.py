@@ -234,6 +234,36 @@ def muzik_sec(k: dict[str, Any]) -> str | None:
     return str(random.choice(parcalar).resolve()) if parcalar else None
 
 
+def muzik_atfi(muzik: str | None) -> tuple[str, bool] | None:
+    """muzik/LISANSLAR.txt içinden parçanın atıf metnini bulur: (atıf, atıf_zorunlu_mu)."""
+    if not muzik:
+        return None
+    yol = Path(muzik)
+    for dosya in (yol.parent / "LISANSLAR.txt", KOK / "muzik" / "LISANSLAR.txt"):
+        if not dosya.exists():
+            continue
+        for satir in dosya.read_text(encoding="utf-8").splitlines():
+            if satir.strip().startswith("#") or satir.count("|") < 2:
+                continue
+            ad, lisans, atif = (x.strip() for x in satir.split("|", 2))
+            if ad == yol.name:
+                return atif, lisans.upper() not in {"CC0", "PUBLIC DOMAIN"}
+    return None
+
+
+def muzik_atfini_ekle(is_: Is, muzik: str | None) -> None:
+    atif = muzik_atfi(muzik)
+    if not atif:
+        return
+    metin, zorunlu = atif
+    lisanslar = is_.veri.setdefault("lisanslar", [])
+    if ("Müzik: " + metin) not in lisanslar:
+        lisanslar.append("Müzik: " + metin)
+    aciklama = is_.veri.get("aciklama")
+    if zorunlu and isinstance(aciklama, str) and metin not in aciklama:
+        is_.veri["aciklama"] = aciklama + "\n\n" + metin
+
+
 def altyazi_yenile(is_: Is, k: dict[str, Any], toplam: float) -> None:
     """Altyazıyı güncel tasarımla (kanca + kelime kelime + ilerleme çubuğu) yeniden yazar."""
     from . import seslendirme
@@ -280,8 +310,12 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
         calistir(whoosh_komutu(anlar, sure), klasor)
         gecis_sesi = "gecis.wav"
     altyazi_yenile(is_, k, sure)
-    calistir(final_komutu(sure, muzik_sec(k), klip_sesi, k.get("muzik_seviyesi", 0.08), gecis_sesi,
+    muzik = muzik_sec(k)
+    calistir(final_komutu(sure, muzik, klip_sesi, k.get("muzik_seviyesi", 0.08), gecis_sesi,
                           k.get("gecis_seviyesi", 0.35)), klasor)
+    if muzik:
+        is_.veri["muzik"] = Path(muzik).name
+        muzik_atfini_ekle(is_, muzik)
     for p in parcalar + ["gecis.wav"]:
         (klasor / p).unlink(missing_ok=True)
     is_.veri["video"] = "video.mp4"

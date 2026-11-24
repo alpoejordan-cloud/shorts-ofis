@@ -104,6 +104,18 @@ def analist_notlari(kanal_id: str) -> str:
     return yol.read_text(encoding="utf-8")[:2000]
 
 
+DIL_ADI = {"tr": "Türkçe (Turkish)", "en": "English"}
+TR_HARF = set("ğüşıöçĞÜŞİÖÇ")
+
+
+def dil_uygun(fikir: dict[str, Any], k: dict[str, Any]) -> bool:
+    """İngilizce kanalın fikrinde Türkçe harf olmamalı (özel adlar için 1 harfe tolerans)."""
+    if k.get("dil") != "en":
+        return True
+    metin = str(fikir.get("konu", "")) + " " + str(fikir.get("aci", ""))
+    return sum(c in TR_HARF for c in metin) <= 1
+
+
 def fikir_bul(k: dict[str, Any], adet: int) -> list[dict[str, Any]]:
     """Kanal için `adet` tane video fikri döner."""
     ham = ham_trendler(k)
@@ -130,10 +142,23 @@ Analistin notları (neyin tuttuğu):
 {analist_notlari(k['id'])}
 
 En iyi {adet} konuyu seç. JSON biçimi:
-{{"fikirler": [{{"konu": "kısa konu", "aci": "videonun özgün bakış açısı", "neden": "neden şimdi ilgi görür", "kaynaklar": ["link1", "link2"]}}]}}"""
-    cevap = sor_json(sistem, kullanici, sicaklik=0.7)
-    fikirler = cevap.get("fikirler", []) if isinstance(cevap, dict) else []
-    fikirler = [f for f in fikirler if isinstance(f, dict) and f.get("konu")][:adet]
+{{"fikirler": [{{"konu": "kısa konu", "aci": "videonun özgün bakış açısı", "neden": "neden şimdi ilgi görür", "kaynaklar": ["link1", "link2"]}}]}}
+
+ÖNEMLİ: "konu" ve "aci" alanlarını kanalın dilinde yaz: {DIL_ADI.get(k['dil'], k['dil'])}.
+Write "konu" and "aci" in {DIL_ADI.get(k['dil'], k['dil'])}."""
+    fikirler: list[dict[str, Any]] = []
+    for deneme in range(2):
+        cevap = sor_json(sistem, kullanici, sicaklik=0.7)
+        fikirler = cevap.get("fikirler", []) if isinstance(cevap, dict) else []
+        fikirler = [f for f in fikirler if isinstance(f, dict) and f.get("konu")][:adet]
+        if all(dil_uygun(f, k) for f in fikirler):
+            break
+        log.info("%s: fikirler kanal dilinde değil, yeniden isteniyor", k["id"])
+        kullanici += f"\n\nPrevious answer was in the wrong language. konu and aci MUST be in {DIL_ADI.get(k['dil'], k['dil'])}."
+    # son çare: yine yanlış dildeyse konu/açı çevrilir
+    from .senarist import konuyu_cevir
+
+    fikirler = [f if dil_uygun(f, k) else konuyu_cevir(f, k) for f in fikirler]
     log.info("%s: %d fikir bulundu", k["id"], len(fikirler))
     (VERI / "son_trendler").mkdir(exist_ok=True)
     (VERI / "son_trendler" / f"{k['id']}.json").write_text(

@@ -225,6 +225,34 @@ def test_ass_kanca_ve_ilerleme_cubugu(tmp_path):
     assert metin.count(",Ana,,") == len("This changes everything for your phone today.".split())
 
 
+def test_muzik_atfi_aciklamaya_eklenir(tmp_path):
+    (tmp_path / "LISANSLAR.txt").write_text(
+        "# yorum\nserbest.mp3 | CC0 | \"Free\" by A (CC0)\natifli.mp3 | CC BY 4.0 | Music: \"Song\" by B (CC BY 4.0)\n",
+        encoding="utf-8")
+    i = cekirdek.Is(kanal="teknoloji_en", veri={"aciklama": "Desc", "lisanslar": []})
+    kurgu.muzik_atfini_ekle(i, str(tmp_path / "serbest.mp3"))
+    assert i.veri["aciklama"] == "Desc" and i.veri["lisanslar"] == ['Müzik: "Free" by A (CC0)']
+    kurgu.muzik_atfini_ekle(i, str(tmp_path / "atifli.mp3"))
+    assert i.veri["aciklama"].endswith('Music: "Song" by B (CC BY 4.0)')
+    kurgu.muzik_atfini_ekle(i, str(tmp_path / "atifli.mp3"))  # iki kez eklenmez
+    assert i.veri["aciklama"].count("Song") == 1
+    assert kurgu.muzik_atfi(str(tmp_path / "yok.mp3")) is None
+
+
+def test_trend_ingilizce_kanalda_turkce_konuyu_duzeltir(monkeypatch):
+    from ofis.ajanlar import trend
+
+    monkeypatch.setattr(trend, "ham_trendler", lambda k: [])
+    cevaplar = iter([
+        {"fikirler": [{"konu": "Yapay zekâ ve güvenlik", "aci": "Neden önemli?"}]},
+        {"fikirler": [{"konu": "AI and security", "aci": "Why it matters"}]},
+    ])
+    monkeypatch.setattr(trend, "sor_json", lambda *a, **kw: next(cevaplar))
+    fikirler = trend.fikir_bul(cekirdek.kanal("teknoloji_en"), 1)
+    assert fikirler[0]["konu"] == "AI and security"
+    assert trend.dil_uygun({"konu": "Kanal dili Türkçe"}, cekirdek.kanal("finans_tr"))
+
+
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

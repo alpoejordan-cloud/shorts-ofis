@@ -48,7 +48,8 @@ def kimlik(kanal_id: str, etkilesimli: bool = False):
             raise RuntimeError("config/client_secret.json yok. Kurulum rehberindeki Google Cloud adımını yap.")
         akis = InstalledAppFlow.from_client_secrets_file(str(istemci_dosyasi()), KAPSAMLAR)
         print(f"\nTarayıcı açılacak. '{kanal_id}' için doğru YouTube KANALINI seç.\n")
-        k = akis.run_local_server(port=0, prompt="consent", access_type="offline")
+        # select_account: Google her seferinde hesap/kanal seçtirir (son kullanılan kanala otomatik bağlanmasın)
+        k = akis.run_local_server(port=0, prompt="consent select_account", access_type="offline")
         yol.write_text(k.to_json(), encoding="utf-8")
     return k
 

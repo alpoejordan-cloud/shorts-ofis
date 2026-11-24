@@ -61,7 +61,7 @@ def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> lis
         sorunlar.append("başlık boş ya da 95 karakterden uzun")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")
-    if k.get("dil") == "en" and any(c in "ğüşıöçĞÜŞİÖÇ" for c in str(s.get("baslik", "")) + str(s.get("senaryo", ""))):
+    if k.get("dil") == "en" and sum(c in "ğüşıöçĞÜŞİÖÇ" for c in str(s.get("baslik", "")) + str(s.get("senaryo", ""))) > 2:
         sorunlar.append("title and narration must be in English, not Turkish")
     return sorunlar
 
@@ -92,8 +92,27 @@ def genislet(metin: str, k: dict[str, Any], fikir: dict[str, Any]) -> str:
     return metin
 
 
+TR_HARF = set("ğüşıöçĞÜŞİÖÇ")
+
+
+def konuyu_cevir(fikir: dict[str, Any], k: dict[str, Any]) -> dict[str, Any]:
+    """İngilizce kanalın konusu Türkçe geldiyse, küçük model Türkçe yazmasın diye önce konuyu çevirir."""
+    if k.get("dil") != "en" or not (TR_HARF & set(str(fikir.get("konu", "")) + str(fikir.get("aci", "")))):
+        return fikir
+    try:
+        cevap = sor_json("You translate Turkish to natural English. Respond with JSON only.",
+                         f'Translate to English.\nkonu: {fikir.get("konu", "")}\naci: {fikir.get("aci", "")}\n'
+                         'JSON: {"konu": "...", "aci": "..."}', sicaklik=0.2)
+    except Exception as e:
+        log.warning("Konu çevrilemedi: %s", e)
+        return fikir
+    if isinstance(cevap, dict) and cevap.get("konu") and not (TR_HARF & set(str(cevap["konu"]))):
+        return {**fikir, "konu": str(cevap["konu"]), "aci": str(cevap.get("aci") or fikir.get("aci", ""))}
+    return fikir
+
+
 def yaz(is_: Is, k: dict[str, Any]) -> None:
-    fikir = is_.veri
+    fikir = konuyu_cevir(is_.veri, k)
     mod = fikir.get("mod", "normal")
     fmt = format_sec(k, mod)
     kalip = random.choice(KANCA_KALIPLARI)
@@ -110,7 +129,10 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
         "question or call to comment. Never invent facts, numbers or quotes; if unsure, say it is a claim or rumor. "
         "No clickbait lies. Respond with JSON only."
     )
-    kullanici = f"""Channel niche: {k['nis']}
+    dil_adi = DIL_ADI.get(k["dil"], k["dil"])
+    kullanici = f"""OUTPUT LANGUAGE: {dil_adi}. The topic below may be written in another language; translate it.
+Every JSON text value (title, hook, narration, description, tags) MUST be in {dil_adi}.
+Channel niche: {k['nis']}
 Topic: {fikir.get('konu')}
 Angle: {fikir.get('aci', '')}
 Sources: {', '.join(fikir.get('kaynaklar', [])) or 'none'}

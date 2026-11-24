@@ -64,20 +64,27 @@ def sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float = 1.0) -> float:
 
 # ---- Altyazı ----
 
+def _grup(simdiki: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"bas": simdiki[0]["bas"], "son": simdiki[-1]["son"],
+            "metin": " ".join(x["kelime"].strip() for x in simdiki),
+            "kelimeler": [{"kelime": x["kelime"].strip(), "bas": float(x["bas"]), "son": float(x["son"])}
+                          for x in simdiki]}
+
+
 def kelimeleri_grupla(kelimeler: list[dict[str, Any]], en_fazla: int = 3) -> list[dict[str, Any]]:
     """Kelime zamanlarını ekranda 1-3 kelimelik parçalara böler."""
     gruplar: list[dict[str, Any]] = []
     simdiki: list[dict[str, Any]] = []
     for k in kelimeler:
+        if not str(k["kelime"]).strip():
+            continue
         simdiki.append(k)
         noktalama = k["kelime"].rstrip().endswith((".", ",", "!", "?", ":", ";"))
         if len(simdiki) >= en_fazla or noktalama:
-            gruplar.append({"bas": simdiki[0]["bas"], "son": simdiki[-1]["son"],
-                            "metin": " ".join(x["kelime"].strip() for x in simdiki)})
+            gruplar.append(_grup(simdiki))
             simdiki = []
     if simdiki:
-        gruplar.append({"bas": simdiki[0]["bas"], "son": simdiki[-1]["son"],
-                        "metin": " ".join(x["kelime"].strip() for x in simdiki)})
+        gruplar.append(_grup(simdiki))
     return gruplar
 
 
@@ -88,27 +95,71 @@ def _ass_zaman(sn: float) -> str:
     return f"{int(s)}:{int(d):02d}:{kalan:05.2f}"
 
 
-def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None) -> None:
+def _temiz(metin: str) -> str:
+    return metin.replace("{", "(").replace("}", ")").replace("\\", "/").upper()
+
+
+def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
+            kanca: str | None = None, toplam: float | None = None) -> None:
+    """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
+    altta ilerleme çubuğu."""
     stil = stil or {}
-    yazi = stil.get("yazi_tipi", "Arial")
-    boyut = stil.get("boyut", 86)
+    yazi = stil.get("yazi_tipi", "Arial Black")
+    boyut = stil.get("boyut", 82)
     renk = stil.get("renk", "&H00FFFFFF")
-    vurgu = stil.get("vurgu", "&H0000E5FF")
+    vurgu = stil.get("vurgu", "&H0000E5FF")  # sarı (ASS renkleri BGR)
+    marj = stil.get("alt_bosluk", 600)
+    kanca_boyut = stil.get("kanca_boyut", 92)
+    kanca_sure = float(stil.get("kanca_sure", 2.8))
     satirlar = [
-        "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "",
+        "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0",
+        "ScaledBorderAndShadow: yes", "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, "
         "Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
         "MarginL, MarginR, MarginV, Encoding",
-        f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,2,5,80,80,0,1",
+        f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,7,4,2,70,70,{marj},1",
+        f"Style: Kanca,{yazi},{kanca_boyut},&H00FFFFFF,&H000000FF,&H1E000000,&H00000000,-1,0,0,0,100,100,1,0,3,24,0,8,"
+        "80,80,300,1",
+        "Style: Cubuk,Arial,10,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1",
         "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
     for g in gruplar:
-        metin = g["metin"].replace("{", "(").replace("}", ")").upper()
-        satirlar.append(
-            f"Dialogue: 0,{_ass_zaman(g['bas'])},{_ass_zaman(g['son'] + 0.05)},Ana,,0,0,0,,"
-            f"{{\\fad(60,0)\\t(0,90,\\fscx112\\fscy112)\\t(90,180,\\fscx100\\fscy100)}}{metin}"
-        )
+        kelimeler = g.get("kelimeler")
+        if not kelimeler:
+            satirlar.append(f"Dialogue: 0,{_ass_zaman(g['bas'])},{_ass_zaman(g['son'] + 0.05)},Ana,,0,0,0,,"
+                            f"{{\\fad(60,0)\\t(0,90,\\fscx112\\fscy112)\\t(90,180,\\fscx100\\fscy100)}}"
+                            f"{_temiz(g['metin'])}")
+            continue
+        for j, w in enumerate(kelimeler):
+            bas = g["bas"] if j == 0 else w["bas"]
+            son = kelimeler[j + 1]["bas"] if j + 1 < len(kelimeler) else g["son"] + 0.05
+            parcalar = []
+            for n, x in enumerate(kelimeler):
+                if n == j:
+                    parcalar.append(f"{{\\c{vurgu}\\t(0,70,\\fscx114\\fscy114)\\t(70,150,\\fscx106\\fscy106)}}"
+                                    f"{_temiz(x['kelime'])}{{\\c{renk}\\fscx100\\fscy100}}")
+                else:
+                    parcalar.append(_temiz(x["kelime"]))
+            giris = "{\\fad(50,0)}" if j == 0 else ""
+            satirlar.append(f"Dialogue: 0,{_ass_zaman(bas)},{_ass_zaman(max(son, bas + 0.05))},Ana,,0,0,0,,"
+                            f"{giris}{' '.join(parcalar)}")
+    if kanca:
+        sozler = _temiz(kanca).split()
+        if len(sozler) > 2:  # son iki kelime sarı
+            metin = " ".join(sozler[:-2]) + f" {{\\c{vurgu}}}" + " ".join(sozler[-2:])
+        else:
+            metin = f"{{\\c{vurgu}}}" + " ".join(sozler)
+        satirlar.append(f"Dialogue: 2,0:00:00.00,{_ass_zaman(kanca_sure)},Kanca,,0,0,0,,"
+                        f"{{\\fad(0,250)\\t(0,140,\\fscx112\\fscy112)\\t(140,280,\\fscx100\\fscy100)}}{metin}")
+    if toplam:
+        ms = int(toplam * 1000)
+        cizim = "m 0 0 l 1080 0 l 1080 14 l 0 14"
+        satirlar.append(f"Dialogue: 1,0:00:00.00,{_ass_zaman(toplam)},Cubuk,,0,0,0,,"
+                        f"{{\\an7\\pos(0,1906)\\1c&HFFFFFF&\\1a&HB0&\\p1}}{cizim}{{\\p0}}")
+        satirlar.append(f"Dialogue: 1,0:00:00.00,{_ass_zaman(toplam)},Cubuk,,0,0,0,,"
+                        f"{{\\an7\\pos(0,1906)\\1c{vurgu}\\clip(0,0,0,1920)\\t(0,{ms},\\clip(0,0,1080,1920))\\p1}}"
+                        f"{cizim}{{\\p0}}")
     cikis.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
 
 
@@ -160,6 +211,10 @@ def seslendir(is_: Is, k: dict[str, Any]) -> None:
         zamanlar = []
     if not zamanlar:
         zamanlar = tahmini_zamanlar(is_.veri["senaryo"], sure)
-    ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"))
-    is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2)})
+    zamanlar = [{"kelime": str(z["kelime"]), "bas": round(float(z["bas"]), 3), "son": round(float(z["son"]), 3)}
+                for z in zamanlar]
+    ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"),
+            kanca=is_.veri.get("kanca_metni"), toplam=sure + 0.6)
+    is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2),
+                     "kelime_zamanlari": zamanlar})
     log.info("%s: ses hazır (%.1f sn)", is_.id, sure)

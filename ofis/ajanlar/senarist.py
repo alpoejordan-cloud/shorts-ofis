@@ -33,6 +33,24 @@ def senaryo_birlestir(s: dict[str, Any]) -> None:
     s["senaryo"] = str(s.get("senaryo", "")).strip()
 
 
+KANCA_KALIPLARI = [
+    "a direct question the viewer can't ignore",
+    "a shocking number or fact (only if it is in the sources)",
+    "\"you didn't know this\" / hidden detail",
+    "contrast: what everyone thinks vs what is actually true",
+    "a bold warning or mistake the viewer is making",
+]
+
+
+def kanca_duzelt(s: dict[str, Any]) -> str:
+    """Ekrandaki kanca metni: en fazla 6 kelime. Yoksa başlıktan türetilir."""
+    kanca = str(s.get("kanca_metni") or "").replace("#shorts", "").strip()
+    if not kanca:
+        kanca = str(s.get("baslik", "")).replace("#shorts", "").strip()
+    sozler = kanca.split()
+    return " ".join(sozler[:6])
+
+
 def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> list[str]:
     sorunlar = []
     kelime = len(str(s.get("senaryo", "")).split())
@@ -43,6 +61,8 @@ def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> lis
         sorunlar.append("başlık boş ya da 95 karakterden uzun")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")
+    if k.get("dil") == "en" and any(c in "ğüşıöçĞÜŞİÖÇ" for c in str(s.get("baslik", "")) + str(s.get("senaryo", ""))):
+        sorunlar.append("title and narration must be in English, not Turkish")
     return sorunlar
 
 
@@ -76,6 +96,7 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
     fikir = is_.veri
     mod = fikir.get("mod", "normal")
     fmt = format_sec(k, mod)
+    kalip = random.choice(KANCA_KALIPLARI)
     klip_notu = ""
     if mod == "izinli_klip":
         klip_notu = (
@@ -94,15 +115,17 @@ Topic: {fikir.get('konu')}
 Angle: {fikir.get('aci', '')}
 Sources: {', '.join(fikir.get('kaynaklar', [])) or 'none'}
 Format for this video: {fmt}
+Hook style for this video: {kalip}
 Narration length: {k.get('kelime_araligi', [60, 120])[0]}-{k.get('kelime_araligi', [60, 120])[1]} words (about 25-45 seconds).
 Extra notes: {k.get('senarist_notu', '')}{klip_notu}
 
 JSON fields:
 - "baslik": title under 70 characters, include #shorts at the end
-- "senaryo_cumleleri": a list of 7 to 9 narration sentences, EACH sentence 10 to 16 words long. Sentence 1 is the hook, the last one asks the viewer a question. Narration only, no stage directions, no emojis
+- "kanca_metni": big on-screen hook text for the first 3 seconds, 3 to 6 words, punchy, in the hook style above, no hashtags, no emojis
+- "senaryo_cumleleri": a list of 7 to 9 narration sentences, EACH sentence 10 to 16 words long. Sentence 1 is the spoken hook (same idea as kanca_metni, hook style above, no greeting, no "in this video"). Every next sentence must add new information or tension so viewers keep watching. The last one asks the viewer a question. Narration only, no stage directions, no emojis
 - "aciklama": 2-3 sentence description; list the sources at the end
 - "etiketler": 5-10 tags
-- "gorsel_kelimeler": 4-6 short ENGLISH search terms for stock footage matching the narration in order
+- "gorsel_kelimeler": 6-8 short ENGLISH search terms for photos/footage, concrete and visual (objects, places, people doing things, brand products), in narration order
 - "yapay_icerik": true if the video shows realistic AI-generated people/events, else false"""
     for deneme in range(3):
         s = sor_json(sistem, kullanici, sicaklik=0.85)
@@ -132,7 +155,8 @@ JSON fields:
         "senaryo": s["senaryo"].strip(),
         "aciklama": aciklama,
         "etiketler": [str(e) for e in s.get("etiketler", [])][:15],
-        "gorsel_kelimeler": [str(g) for g in s.get("gorsel_kelimeler", [])][:6],
+        "gorsel_kelimeler": [str(g) for g in s.get("gorsel_kelimeler", [])][:8],
+        "kanca_metni": kanca_duzelt(s),
         "yapay_icerik": bool(s.get("yapay_icerik", False)),
     })
     log.info("%s: senaryo hazır: %s", is_.id, is_.veri["baslik"])

@@ -54,7 +54,7 @@ def test_altyazi_gruplama_ve_ass(tmp_path):
     yol = tmp_path / "a.ass"
     seslendirme.ass_yaz(gruplar, yol)
     metin = yol.read_text(encoding="utf-8")
-    assert "PlayResY: 1920" in metin and "MERHABA DÜNYA," in metin
+    assert "PlayResY: 1920" in metin and "MERHABA" in metin and "DÜNYA," in metin
 
 
 def test_yayin_zamani_dolu_saati_atlar():
@@ -143,6 +143,7 @@ def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
 
     monkeypatch.setattr(gorsel, "ai_gorsel", sahte_ai)
     monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="gta_en", veri={"gorsel_kelimeler": ["a", "b", "c", "d", "e"]})
     gorsel.topla(i, cekirdek.kanal("gta_en"))
@@ -153,6 +154,7 @@ def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
 def test_stok_anahtari_yoksa_yapay_zeka_tamamlar(monkeypatch):
     monkeypatch.setattr(gorsel, "ai_gorsel", lambda istem, hedef, seed=0: hedef.write_bytes(b"x") or hedef)
     monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="finans_tr", veri={"gorsel_kelimeler": ["money", "bank"]})
     gorsel.topla(i, cekirdek.kanal("finans_tr"))
@@ -183,7 +185,46 @@ def test_ses_dizisi_16khz(tmp_path):
 def test_gorsel_yoksa_renk_gecisi_eklenir(monkeypatch):
     monkeypatch.setattr(gorsel, "ai_gorsel", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("402 Payment Required")))
     monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="teknoloji_en", veri={"gorsel_kelimeler": ["a"]})
     gorsel.topla(i, cekirdek.kanal("teknoloji_en"))
     assert [s["tur"] for s in i.veri["sahneler"]] == ["desen"] * 4
+
+
+def test_acik_resim_kredisi_aciklamaya_eklenir(monkeypatch, tmp_path):
+    monkeypatch.setattr(gorsel, "stok_video", lambda kelime: [])
+    monkeypatch.setattr(gorsel, "ai_gorsel", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("402")))
+    monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
+    monkeypatch.setattr(gorsel, "acik_resim", lambda kelime, adet=4: [
+        {"id": f"ov-{kelime}", "link": "http://x", "sayfa": "http://p", "sahip": "Ali", "baslik": "Phone",
+         "lisans": "CC BY 2.0"}])
+    monkeypatch.setattr(gorsel, "resim_indir", lambda url, hedef: hedef.write_bytes(b"x") or hedef)
+    i = cekirdek.Is(kanal="teknoloji_en", veri={"gorsel_kelimeler": ["phone", "laptop"], "aciklama": "A"})
+    gorsel.topla(i, cekirdek.kanal("teknoloji_en"))
+    assert [s["tur"] for s in i.veri["sahneler"]][:2] == ["resim", "resim"]
+    assert "Image credits" in i.veri["aciklama"] and "CC BY 2.0" in i.veri["aciklama"]
+
+
+def test_kesim_plani_sik_kesme_ve_sure():
+    sahneler = [{"tur": "desen"}, {"tur": "resim", "yol": "a.jpg"}]
+    plan = kurgu.kesim_plani(sahneler, 36.0, 2.4, tohum="x")
+    assert len(plan) == 15
+    gorunen = sum(p["sure"] for p in plan) - kurgu.GECIS * (len(plan) - 1)
+    assert abs(gorunen - 36.0) < 1e-6
+    assert all(a["hareket"] != b["hareket"] for a, b in zip(plan, plan[1:]))
+
+
+def test_ass_kanca_ve_ilerleme_cubugu(tmp_path):
+    zaman = seslendirme.tahmini_zamanlar("This changes everything for your phone today.", 3.0)
+    yol = tmp_path / "a.ass"
+    seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(zaman), yol, kanca="Nobody noticed this change", toplam=3.6)
+    metin = yol.read_text(encoding="utf-8")
+    assert ",Kanca,," in metin and "NOBODY NOTICED" in metin
+    assert "\\clip(0,0,1080,1920)" in metin and ",Cubuk,," in metin
+    assert metin.count(",Ana,,") == len("This changes everything for your phone today.".split())
+
+
+def test_kanca_metni_alti_kelimeyi_gecmez():
+    assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
+    assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

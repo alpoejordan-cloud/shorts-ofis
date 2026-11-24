@@ -9,6 +9,7 @@
   rapor                haftalık raporu yazar
   gunluk               zamanlayıcının çalıştırdığı tam gün: üret + yükle
   durum                işlerin özetini gösterir
+  yayinla İŞ [İŞ...]   seçilen işleri hemen herkese açık yükler (zamanlama yok)
   hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
 from __future__ import annotations
@@ -37,7 +38,25 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("gunluk")
     alt.add_parser("durum")
     alt.add_parser("hatirlat")
+    yy = alt.add_parser("yayinla")
+    yy.add_argument("isler", nargs="+")
     a = p.parse_args(argv)
+    if a.komut == "yayinla":
+        # Senin komutunla: verilen işleri onaylar ve zamanlamadan HEMEN herkese açık yükler
+        from .ajanlar import yukleyici
+        from .cekirdek import Is, kanal
+        for is_id in a.isler:
+            i = Is.yukle(is_id)
+            i.durum, i.veri["hemen_yayinla"] = "onaylandi", True
+            i.kaydet()
+            yukleyici.yukle_bir(i, kanal(i.kanal))
+            i = Is.yukle(is_id)
+            d = i.veri.get("youtube_durum") or {}
+            print(f"{is_id}: https://youtube.com/shorts/{i.veri.get('youtube_id')}  "
+                  f"gizlilik={d.get('privacyStatus', '?')}  başlık={i.veri['seo']['title']}")
+            if i.veri.get("kampanya"):
+                print(f"   Content Rewards'a 30 dk içinde gönder: {i.veri['kampanya']}")
+        return 0
     if a.komut == "hatirlat":
         from .ajanlar.hatirlatici import kontrol
         print(kontrol(), "kampanya bildirimi")

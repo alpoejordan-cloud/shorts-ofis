@@ -30,7 +30,7 @@ if (-not (Test-Path ".env")) {
 }
 
 $model = (Select-String -Path ".env" -Pattern "^OLLAMA_MODEL=(.+)$").Matches.Groups[1].Value
-if (-not $model) { $model = "qwen2.5:7b" }
+if (-not $model) { $model = "qwen3:8b" }
 Write-Host "Yapay zeka modeli indiriliyor: $model (birkaç GB, biraz sürebilir)"
 ollama pull $model
 

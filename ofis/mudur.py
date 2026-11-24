@@ -12,6 +12,7 @@ from .cekirdek import Is, gunluk_al, isler, kanal, kanallar
 
 log = gunluk_al("mudur")
 EN_FAZLA_DENEME = 3
+BEKLEME_SN = 45  # geçici hatalarda (Ollama/ağ) yeniden denemeden önce bekleme; her denemede artar
 
 # durum -> (bu aşamayı yapan ajan, sonraki durum)
 ADIMLAR: dict[str, tuple[Callable[[Is, dict[str, Any]], None], str]] = {
@@ -41,8 +42,11 @@ def is_ilerlet(is_: Is) -> None:
             log.debug(traceback.format_exc())
             if is_.deneme >= EN_FAZLA_DENEME:
                 is_.durum = "hata"
+                is_.kaydet()
+                return
             is_.kaydet()
-            return
+            time.sleep(BEKLEME_SN * is_.deneme)
+            continue
         is_.durum = sonraki
         is_.deneme = 0
         is_.kaydet()

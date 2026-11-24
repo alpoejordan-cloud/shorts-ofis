@@ -89,4 +89,4 @@ Bundan sonra her gece 02:30'da videolar üretilir. Senin işin: günde bir kez `
 - `python -m ofis doktor` eksikleri söyler.
 - `python -m ofis durum` hangi işin nerede takıldığını gösterir.
 - Günlükler: `veri\gunluk\` klasörü. Hata mesajını Claude'a yapıştırman yeterli.
-- Model çok yavaşsa `.env` içinde `OLLAMA_MODEL=qwen2.5:3b` yap ve `ollama pull qwen2.5:3b` çalıştır.
+- Model çok yavaşsa `.env` içinde `OLLAMA_MODEL=qwen2.5:7b` yap (biraz daha hızlı, Türkçesi daha zayıf) ve `ollama pull qwen2.5:7b` çalıştır.

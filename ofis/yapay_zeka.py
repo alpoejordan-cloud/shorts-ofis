@@ -19,7 +19,7 @@ def _adres() -> str:
 
 
 def model_adi() -> str:
-    return ortam("OLLAMA_MODEL", "qwen2.5:7b")
+    return ortam("OLLAMA_MODEL", "qwen3:8b")
 
 
 def json_ayikla(metin: str) -> Any:
@@ -44,20 +44,19 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.8, deneme: int = 3
     son_hata: Exception | None = None
     for _ in range(deneme):
         try:
-            cevap = requests.post(
-                f"{_adres()}/api/chat",
-                json={
-                    "model": model_adi(),
-                    "messages": [
-                        {"role": "system", "content": sistem},
-                        {"role": "user", "content": kullanici},
-                    ],
-                    "stream": False,
-                    "format": "json",
-                    "options": {"temperature": sicaklik, "num_ctx": 8192},
-                },
-                timeout=900,
-            )
+            istek: dict[str, Any] = {
+                "model": model_adi(),
+                "messages": [
+                    {"role": "system", "content": sistem},
+                    {"role": "user", "content": kullanici},
+                ],
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": sicaklik, "num_ctx": 8192},
+            }
+            if model_adi().startswith(("qwen3", "deepseek-r1")):
+                istek["think"] = False  # düşünme modu CPU'da çok yavaş; JSON için gerekmez
+            cevap = requests.post(f"{_adres()}/api/chat", json=istek, timeout=900)
             cevap.raise_for_status()
             return json_ayikla(cevap.json()["message"]["content"])
         except (requests.RequestException, KeyError, YapayZekaHatasi) as e:

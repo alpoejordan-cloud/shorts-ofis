@@ -13,8 +13,8 @@ kanallar:
     ses: "kokoro:af_heart"      # Kokoro'nun en yüksek puanlı sesi
     ses_yedek: en_US-ryan-high
     ses_hizi: 1.08
-    gunluk_video: 1
-    yayin_saatleri: ["17:00"]  # ABD sabahı
+    gunluk_video: 2  # kapasite: tek Google projesi günde ~6 yükleme (10.000 birim / 1.600); toplam 5
+    yayin_saatleri: ["17:00", "23:00"]  # ABD sabahı + ABD öğleden sonrası
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 28        # Bilim ve Teknoloji
     kelime_araligi: [70, 115]
@@ -39,7 +39,7 @@ kanallar:
     nis: "Kişisel finans, para yönetimi ve ekonomi gündemi; sade Türkçe, günlük hayata dönük"
     ses: tr_TR-dfki-medium
     ses_hizi: 1.05
-    gunluk_video: 1
+    gunluk_video: 1  # kapasite: tek Google projesi günde ~6 yükleme (10.000 birim / 1.600); toplam 5
     yayin_saatleri: ["20:00"]
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 27        # Eğitim
@@ -66,8 +66,8 @@ kanallar:
     ses: "kokoro:am_michael"    # erkek ses, oyun kanalı
     ses_yedek: en_US-ryan-high
     ses_hizi: 1.1
-    gunluk_video: 1
-    yayin_saatleri: ["19:00"]
+    gunluk_video: 2  # kapasite: tek Google projesi günde ~6 yükleme (10.000 birim / 1.600); toplam 5
+    yayin_saatleri: ["19:00", "02:00"]  # Avrupa akşamı + ABD akşamı
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 20        # Oyun
     kelime_araligi: [60, 110]

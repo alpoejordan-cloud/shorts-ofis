@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import re as _re
 from collections import Counter
 from typing import Any
 
@@ -134,6 +135,16 @@ def gorsel_kelimeleri_ingilizce(kelimeler: list[str], dil: str = "en") -> list[s
     return kelimeler
 
 
+
+def klip_basligi(model_basligi: str, yayinci: str, klip_adi: str) -> str:
+    """Model başlığı zayıfsa (yayıncı adı dışında 3 kelimeden az) "Yayıncı: klip adı" kalıbını kullanır."""
+    yayinci = yayinci.split("(")[0].strip()
+    anlamli = [w for w in _re.findall(r"[A-Za-z0-9']+", model_basligi)
+               if w.lower() not in {"shorts", *yayinci.lower().split()}]
+    if len(anlamli) >= 3:
+        return model_basligi.strip()
+    return f"{yayinci}: {klip_adi.strip()}" if klip_adi.strip() else model_basligi.strip()
+
 def klip_metni_yaz(is_: Is, k: dict[str, Any]) -> None:
     """Yayıncı sesi korunan kampanya klipleri: seslendirme yazılmaz; sadece başlık, kanca, açıklama, etiket."""
     fikir = is_.veri
@@ -172,7 +183,7 @@ JSON fields:
     s["etiketler"] = [w for w in s.get("etiketler", []) if str(w).lower() in kaynak or " " not in str(w)][:8]
     is_.veri.update({
         "format": "yayıncı klibi (orijinal ses)",
-        "baslik": str(s["baslik"]).strip(),
+        "baslik": klip_basligi(str(s.get("baslik", "")), str(fikir.get("yayinci", "")), klip_adi),
         "senaryo": "",
         "aciklama": aciklama,
         "etiketler": [str(e) for e in s.get("etiketler", [])][:15] + [e.lstrip("#") for e in etiketler],

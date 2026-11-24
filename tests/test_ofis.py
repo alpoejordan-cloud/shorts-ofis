@@ -131,9 +131,9 @@ def test_mudur_hatada_tekrar_dener_sonra_birakir(monkeypatch):
         raise RuntimeError("bozuldu")
 
     monkeypatch.setattr(mudur, "ADIMLAR", {"fikir": (bozuk, "senaryo")})
+    monkeypatch.setattr(mudur, "BEKLEME_SN", 0)
     i = cekirdek.Is(kanal="finans_tr")
-    for _ in range(mudur.EN_FAZLA_DENEME):
-        mudur.is_ilerlet(i)
+    mudur.is_ilerlet(i)  # aynı çalışmada EN_FAZLA_DENEME kez dener, sonra bırakır
     assert i.durum == "hata" and len(i.hatalar) == mudur.EN_FAZLA_DENEME
 
 
@@ -397,3 +397,28 @@ def test_oyun_kaydindan_farkli_anlar_secilir(tmp_path, monkeypatch):
     sahneler = gorsel.oyun_kaydi_sahneleri(k, "a")
     assert len(sahneler) == 5 and len({s["bas"] for s in sahneler}) == 5
     assert all(s["tur"] == "video" for s in sahneler)
+
+
+def test_klip_basligi_zayifsa_kalip():
+    from ofis.ajanlar.senarist import klip_basligi
+    assert klip_basligi("Dasgasd3m #shorts", "Dasgasd3m (Dom)", "Gas price rant") == "Dasgasd3m: Gas price rant"
+    assert klip_basligi("Dom loses it over GTA 6 gas prices #shorts", "Dasgasd3m", "x").startswith("Dom loses")
+
+
+def test_gecici_hatada_hemen_yeniden_dener(monkeypatch, tmp_path):
+    from ofis import cekirdek, mudur
+
+    monkeypatch.setattr(mudur, "BEKLEME_SN", 0)
+    monkeypatch.setattr(cekirdek.Is, "kaydet", lambda self: None)
+    sayac = {"n": 0}
+
+    def bazen_hata(is_, k):
+        sayac["n"] += 1
+        if sayac["n"] < 2:
+            raise RuntimeError("ollama meşgul")
+
+    adimlar = {"fikir": (bazen_hata, "video")}
+    monkeypatch.setattr(mudur, "ADIMLAR", adimlar)
+    i = cekirdek.Is(kanal="teknoloji_en", veri={})
+    mudur.is_ilerlet(i)
+    assert sayac["n"] == 2 and i.durum == "onay_bekliyor" and i.deneme == 0

@@ -23,7 +23,10 @@ powershell -ExecutionPolicy Bypass -File scripts\kurulum.ps1
 Bu betik Python, FFmpeg, Ollama'yı kurar, yapay zeka modelini ve ses modellerini indirir.
 Sonunda "sağlık kontrolü" listesi çıkar; EKSİK yazanları sonraki adımlar tamamlar.
 
-## 3. Ücretsiz Pexels anahtarı (5 dk)
+## 3. Stok video anahtarı (isteğe bağlı, 5 dk)
+
+Anahtar olmadan da çalışır; görüntüler yapay zekayla üretilir. Gerçek stok videolar istersen Pexels veya
+Pixabay (pixabay.com/api/docs, giriş yapınca anahtar sayfada görünür) anahtarını `.env` içine yaz.
 
 1. https://www.pexels.com/api/ adresinden ücretsiz hesap aç ve "Your API Key" al.
 2. Proje klasöründeki `.env` dosyasını Not Defteri ile aç, `PEXELS_API_ANAHTARI=` satırının sonuna yapıştır.

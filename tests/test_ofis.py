@@ -253,6 +253,15 @@ def test_trend_ingilizce_kanalda_turkce_konuyu_duzeltir(monkeypatch):
     assert trend.dil_uygun({"konu": "Kanal dili Türkçe"}, cekirdek.kanal("finans_tr"))
 
 
+def test_turkce_gorsel_kelimeleri_cevrilir_ve_buyuk_harf(monkeypatch, tmp_path):
+    monkeypatch.setattr(senarist, "sor_json", lambda *a, **kw: {"terms": ["money", "budget planner"]})
+    assert senarist.gorsel_kelimeleri_ingilizce(["para", "bütçe"], "tr") == ["money", "budget planner"]
+    assert senarist.gorsel_kelimeleri_ingilizce(["phone"], "en") == ["phone"]
+    yol = tmp_path / "t.ass"
+    seslendirme.ass_yaz(seslendirme.kelimeleri_grupla(seslendirme.tahmini_zamanlar("için sınav", 1.0)), yol, dil="tr")
+    assert "İÇİN" in yol.read_text(encoding="utf-8") and "SINAV" in yol.read_text(encoding="utf-8")
+
+
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

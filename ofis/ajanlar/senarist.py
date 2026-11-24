@@ -2,6 +2,7 @@
 Her videoda farklı bir format seçerek kalıp içerik riskini azaltır."""
 from __future__ import annotations
 
+import json
 import random
 from collections import Counter
 from typing import Any
@@ -93,6 +94,9 @@ def genislet(metin: str, k: dict[str, Any], fikir: dict[str, Any]) -> str:
 
 
 TR_HARF = set("ğüşıöçĞÜŞİÖÇ")
+# Türkçe harf içermeyen ama Türkçe olan sık görsel kelimeleri
+TR_SIK = {"para", "tapu", "kitap", "ev", "araba", "banka", "kredi", "faiz", "altin", "borsa", "maas", "vergi",
+          "kira", "fatura", "dijital", "ekonomi", "enflasyon", "yatirim", "yatkim", "butce", "sinav", "portfoy"}
 
 
 def konuyu_cevir(fikir: dict[str, Any], k: dict[str, Any]) -> dict[str, Any]:
@@ -109,6 +113,25 @@ def konuyu_cevir(fikir: dict[str, Any], k: dict[str, Any]) -> dict[str, Any]:
     if isinstance(cevap, dict) and cevap.get("konu") and not (TR_HARF & set(str(cevap["konu"]))):
         return {**fikir, "konu": str(cevap["konu"]), "aci": str(cevap.get("aci") or fikir.get("aci", ""))}
     return fikir
+
+
+def gorsel_kelimeleri_ingilizce(kelimeler: list[str], dil: str = "en") -> list[str]:
+    """Fotoğraf aramaları İngilizce yapılır; Türkçe kanalda veya Türkçe yazılmışsa çevrilir."""
+    turkce = any(TR_HARF & set(w) or not w.isascii() or w.lower() in TR_SIK for w in kelimeler)
+    if not kelimeler or (dil == "en" and not turkce):
+        return kelimeler
+    try:
+        cevap = sor_json("You translate image search terms to English. Respond with JSON only.",
+                         "Translate each term to a short, concrete English photo search term (same order).\n"
+                         f"terms: {json.dumps(kelimeler, ensure_ascii=False)}\n"
+                         'JSON: {"terms": ["...", "..."]}', sicaklik=0.2)
+    except Exception as e:
+        log.warning("Görsel kelimeleri çevrilemedi: %s", e)
+        return kelimeler
+    yeni = cevap.get("terms") if isinstance(cevap, dict) else None
+    if isinstance(yeni, list) and yeni and all(isinstance(w, str) and w.strip() for w in yeni):
+        return [w.strip().replace("_", " ") for w in yeni][:8]
+    return kelimeler
 
 
 def yaz(is_: Is, k: dict[str, Any]) -> None:
@@ -177,7 +200,8 @@ JSON fields:
         "senaryo": s["senaryo"].strip(),
         "aciklama": aciklama,
         "etiketler": [str(e) for e in s.get("etiketler", [])][:15],
-        "gorsel_kelimeler": [str(g) for g in s.get("gorsel_kelimeler", [])][:8],
+        "gorsel_kelimeler": gorsel_kelimeleri_ingilizce(
+            [str(g).replace("_", " ") for g in s.get("gorsel_kelimeler", [])][:8], k.get("dil", "en")),
         "kanca_metni": kanca_duzelt(s),
         "yapay_icerik": bool(s.get("yapay_icerik", False)),
     })

@@ -95,14 +95,21 @@ def _ass_zaman(sn: float) -> str:
     return f"{int(s)}:{int(d):02d}:{kalan:05.2f}"
 
 
+_DIL = {"dil": "en"}
+
+
 def _temiz(metin: str) -> str:
-    return metin.replace("{", "(").replace("}", ")").replace("\\", "/").upper()
+    metin = metin.replace("{", "(").replace("}", ")").replace("\\", "/")
+    if _DIL["dil"] == "tr":  # Türkçe büyük harf: i -> İ, ı -> I
+        metin = metin.replace("i", "İ").replace("ı", "I")
+    return metin.upper()
 
 
 def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
-            kanca: str | None = None, toplam: float | None = None) -> None:
+            kanca: str | None = None, toplam: float | None = None, dil: str = "en") -> None:
     """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
     altta ilerleme çubuğu."""
+    _DIL["dil"] = dil
     stil = stil or {}
     yazi = stil.get("yazi_tipi", "Arial Black")
     boyut = stil.get("boyut", 82)
@@ -124,7 +131,10 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         "Style: Cubuk,Arial,10,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1",
         "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
-    for g in gruplar:
+    for gi, g in enumerate(gruplar):
+        # bir sonraki grup başlarken bu grup ekrandan kalksın (üst üste binme olmasın)
+        if gi + 1 < len(gruplar):
+            g = {**g, "son": min(g["son"], gruplar[gi + 1]["bas"] - 0.06)}
         kelimeler = g.get("kelimeler")
         if not kelimeler:
             satirlar.append(f"Dialogue: 0,{_ass_zaman(g['bas'])},{_ass_zaman(g['son'] + 0.05)},Ana,,0,0,0,,"
@@ -214,7 +224,7 @@ def seslendir(is_: Is, k: dict[str, Any]) -> None:
     zamanlar = [{"kelime": str(z["kelime"]), "bas": round(float(z["bas"]), 3), "son": round(float(z["son"]), 3)}
                 for z in zamanlar]
     ass_yaz(kelimeleri_grupla(zamanlar), is_.klasor / "altyazi.ass", k.get("altyazi"),
-            kanca=is_.veri.get("kanca_metni"), toplam=sure + 0.6)
+            kanca=is_.veri.get("kanca_metni"), toplam=sure + 0.6, dil=k.get("dil", "en"))
     is_.veri.update({"ses": "ses.wav", "altyazi": "altyazi.ass", "sure": round(sure, 2),
                      "kelime_zamanlari": zamanlar})
     log.info("%s: ses hazır (%.1f sn)", is_.id, sure)

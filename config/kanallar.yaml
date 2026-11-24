@@ -4,7 +4,7 @@
 
 kanallar:
   - id: teknoloji_en
-    ad: ""                     # YouTube'daki kanal adı (açınca yaz)
+    ad: "Tech in 30"                     # YouTube'daki kanal adı (açınca yaz)
     aktif: true
     dil: en
     nis: "AI and technology news explained in 30 seconds, with one honest opinion"
@@ -30,7 +30,7 @@ kanallar:
     aciklama_eki: "Follow for daily AI & tech news in 30 seconds."
 
   - id: finans_tr
-    ad: ""
+    ad: "Cebine Bilgi"
     aktif: true
     dil: tr
     nis: "Kişisel finans, para yönetimi ve ekonomi gündemi; sade Türkçe, günlük hayata dönük"
@@ -56,7 +56,7 @@ kanallar:
     aciklama_eki: "Bu video yatırım tavsiyesi değildir, genel bilgilendirme amaçlıdır."
 
   - id: gta_en
-    ad: ""
+    ad: "Open World Insider"
     aktif: true
     dil: en
     nis: "GTA news, rumors checked, hidden details and tips, with original commentary"

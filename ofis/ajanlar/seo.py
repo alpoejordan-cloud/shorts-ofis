@@ -47,13 +47,13 @@ def baslik(ham: str, k: dict[str, Any]) -> str:
     ana = ayar(k)["ana_anahtar"]
     govde = re.sub(r"#shorts", "", ham, flags=re.IGNORECASE).strip(" -|")
     govde = re.sub(r"\s+", " ", govde)
-    if ana and ana.lower() not in govde.lower() and not (ana == "GTA 6" and "gta vi" in govde.lower()):
-        govde = f"{ana}: {govde}"
-    elif ana and not govde.lower().startswith(ana.lower()):
-        # anahtar kelime var ama başta değil: başa al (anlam bozulmadan, "X | başlık")
-        konum = govde.lower().find(ana.lower())
-        if konum > 25:
-            govde = f"{ana} | {govde}"
+    if ana and not govde.lower().startswith(ana.lower()):
+        # ana anahtar kelime her zaman başta: başlıktaki tekrarı (ve GTA 6 için "GTA VI") çıkarıp başa al
+        esler = [re.escape(ana)] + ([r"GTA\s*VI\b", r"GTA6\b"] if ana == "GTA 6" else [])
+        for es in esler:
+            govde = re.sub(es, "", govde, flags=re.IGNORECASE)
+        govde = re.sub(r"\s+", " ", govde).strip(" -:|,")
+        govde = f"{ana}: {govde}" if govde else ana
     return _kes(govde, BASLIK_SINIR - len(" #shorts")) + " #shorts"
 
 

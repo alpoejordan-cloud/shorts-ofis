@@ -333,6 +333,14 @@ def test_seo_baslik_aciklama_etiket():
     assert s["tags"][0] == "Dasgasd3m" and s["defaultLanguage"] == "en" and s["categoryId"] == "20"
 
 
+def test_seo_ana_anahtar_hep_basta():
+    from ofis.ajanlar import seo
+
+    k = cekirdek.kanal("gta_en")
+    assert seo.baslik("Bobby VanRiper GTA VI Shark #shorts", k) == "GTA 6: Bobby VanRiper Shark #shorts"
+    assert seo.baslik("GTA 6 trailer breakdown", k) == "GTA 6 trailer breakdown #shorts"
+
+
 def test_kanca_metni_alti_kelimeyi_gecmez():
     assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"

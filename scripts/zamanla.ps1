@@ -2,6 +2,7 @@
 #  - Her akşam 18:00: üretim + kalite + zamanlanmış yükleme (o gecenin geç slotları: Tech 23:00, GTA 02:00)
 #  - Her gece 02:30: üretim + kalite + zamanlanmış yükleme (ertesi akşam slotları: Tech 17:00, GTA 19:00)
 #    Her çalışma önce yarım kalan işleri bitirir (telafi) ve hazır videoları yükler.
+#  - Her gün 11:15: yalnızca yükleme (kota sıfırlanınca hazır videolar; üretim yok)
 #  - Pazartesi 18:15: haftalık rapor
 #  - 5 dakikada bir: kampanya gönderim hatırlatıcısı (hafif)
 # Çalıştır:  powershell -ExecutionPolicy Bypass -File scripts\zamanla.ps1
@@ -27,6 +28,8 @@ foreach ($eski in "ShortsOfis - Sabah telafi", "ShortsOfis - Ogle yukleme", "Sho
 }
 Gorev "ShortsOfis - Aksam uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 18:00)
 Gorev "ShortsOfis - Gunluk uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 02:30)
+# YouTube API kotası TR 11:00'de sıfırlanır: hazır (onaylı) videolar hemen yüklensin; üretim yapmaz, hafif
+Gorev "ShortsOfis - Kota yukleme" "yukle" (New-ScheduledTaskTrigger -Daily -At 11:15)
 Gorev "ShortsOfis - Haftalik rapor" "rapor" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 18:15)
 # Kampanya klipleri yayına girince 30 dk içinde Content Rewards'a gönderilmeli: 5 dakikada bir kontrol + bildirim
 Gorev "ShortsOfis - Kampanya hatirlatici" "hatirlat" (New-ScheduledTaskTrigger -Once -At (Get-Date) `

@@ -113,7 +113,8 @@ def yukle_bir(is_: Is, k: dict[str, Any]) -> None:
     cevap = None
     while cevap is None:
         _, cevap = istek.next_chunk()
-    is_.veri.update({"youtube_id": cevap["id"], "yayin_zamani": zaman.isoformat()})
+    is_.veri.update({"youtube_id": cevap["id"], "yayin_zamani": zaman.isoformat(),
+                     "yukleme_zamani": datetime.now(ZoneInfo("Europe/Istanbul")).isoformat(timespec="seconds")})
     # Denetlenmemiş API projelerinde YouTube videoyu "gizli (kilitli)" yapabilir: kontrol et
     try:
         st = servis(k["id"]).videos().list(part="status", id=cevap["id"]).execute()["items"][0]["status"]
@@ -131,13 +132,33 @@ def yukle_bir(is_: Is, k: dict[str, Any]) -> None:
     log.info("%s yüklendi: https://youtube.com/shorts/%s, yayın: %s", is_.id, cevap["id"], zaman)
 
 
+def kota_gunu(zaman: datetime | None = None) -> str:
+    """YouTube API kotası Pasifik saatiyle gece yarısı sıfırlanır (TR 11:00 / yaz saatinde 10:00)."""
+    return (zaman or datetime.now(ZoneInfo("UTC"))).astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat()
+
+
+def kota_gunundeki_yukleme(simdi: datetime | None = None) -> int:
+    """Bu kota gününde yapılan yükleme sayısı (her yükleme 1.600 birim; 10.000 birimle ~6)."""
+    gun = kota_gunu(simdi)
+    sayi = 0
+    for i in isler("yuklendi"):
+        zaman = i.veri.get("yukleme_zamani")
+        if not zaman:
+            continue
+        try:
+            if kota_gunu(datetime.fromisoformat(zaman)) == gun:
+                sayi += 1
+        except ValueError:
+            continue
+    return sayi
+
+
 def yukle_hepsi(gunluk_sinir: int | None = None) -> int:
     """Onaylanmış tüm videoları yükler. Kota dolarsa durur, kalanı sonraki çalışmaya kalır."""
     from googleapiclient.errors import HttpError
 
     sinir = gunluk_sinir or int(ortam("GUNLUK_YUKLEME_SINIRI", "6"))
-    bugun = datetime.now().date().isoformat()
-    yuklenen = sum(1 for i in isler("yuklendi") if i.guncelleme[:10] == bugun)
+    yuklenen = kota_gunundeki_yukleme()
     sayac = 0
     for i in isler("onaylandi"):
         if yuklenen + sayac >= sinir:

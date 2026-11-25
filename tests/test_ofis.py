@@ -769,3 +769,12 @@ def test_resmi_fikir_kaynakla_gelir(tmp_path, monkeypatch):
     f = resmi_havuz.fikir_uret("gta_en")
     assert f["resmi_konu"] == "Jason Duval" and f["kaynaklar"] == [resmi_havuz.RESMI_METIN]
     assert "Leonida Keys" in kaynak.metin_oku(f) or "Leonida Keys" in (tmp_path / "resmi.txt").read_text(encoding="utf-8")
+
+
+def test_kota_gunu_pasifik_gece_yarisi():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from ofis.ajanlar.yukleyici import kota_gunu
+    tr = ZoneInfo("Europe/Istanbul")
+    assert kota_gunu(datetime(2026, 11, 26, 10, 59, tzinfo=tr)) == "2026-11-25"
+    assert kota_gunu(datetime(2026, 11, 26, 11, 1, tzinfo=tr)) == "2026-11-26"

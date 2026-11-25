@@ -179,19 +179,19 @@ kanallar:
     google_istemci: client_secret_cocuk.json
     dil: tr
     nis: "3-7 yaş için kısa, sıcak, dersli animasyon masalları: Fıstık ve arkadaşları her bölümde bir iyilik öğrenir"
-    ses: tr_TR-dfki-medium               # anlatıcı
+    ses: tr_TR-dfki-medium               # anlatıcı (resmi Piper deposunda tek Türkçe ses; karakterler perde/hızla ayrışır)
     ses_hizi: 0.92
     anlatici_perde: 1.0
     karakterler:
-      - {id: fistik, ad: Fıstık, tur: sincap, aksesuar: atki, aksesuar_renk: "#2EC4B6", ses: tr_TR-fettah-medium, perde: 1.35, hiz: 1.0,
+      - {id: fistik, ad: Fıstık, tur: sincap, aksesuar: atki, aksesuar_renk: "#2EC4B6", ses: tr_TR-dfki-medium, perde: 1.38, hiz: 1.05,
          kisilik: "meraklı, neşeli, hep soru soran küçük sincap"}
-      - {id: pamuk, ad: Pamuk, tur: tavsan, aksesuar: fiyonk, aksesuar_renk: "#FF5C8A", ses: tr_TR-dfki-medium, perde: 1.45, hiz: 1.0,
+      - {id: pamuk, ad: Pamuk, tur: tavsan, aksesuar: fiyonk, aksesuar_renk: "#FF5C8A", ses: tr_TR-dfki-medium, perde: 1.55, hiz: 0.98,
          kisilik: "nazik, yardımsever, biraz utangaç tavşan"}
-      - {id: boncuk, ad: Boncuk, tur: kedi, ses: tr_TR-fahrettin-medium, perde: 1.4, hiz: 1.0,
+      - {id: boncuk, ad: Boncuk, tur: kedi, ses: tr_TR-dfki-medium, perde: 1.25, hiz: 1.1,
          kisilik: "oyunbaz, aceleci ama tatlı kedi"}
-      - {id: bilge, ad: Bilge, tur: baykus, aksesuar: gozluk, ses: tr_TR-fettah-medium, perde: 1.1, hiz: 0.95,
+      - {id: bilge, ad: Bilge, tur: baykus, aksesuar: gozluk, ses: tr_TR-dfki-medium, perde: 0.9, hiz: 0.9,
          kisilik: "sakin, akıllı, sorunları çözen baykuş"}
-      - {id: zipzip, ad: Zıpzıp, tur: kurbaga, aksesuar: sapka, aksesuar_renk: "#FFB020", ses: tr_TR-fahrettin-medium, perde: 1.25, hiz: 1.05,
+      - {id: zipzip, ad: Zıpzıp, tur: kurbaga, aksesuar: sapka, aksesuar_renk: "#FFB020", ses: tr_TR-dfki-medium, perde: 1.15, hiz: 1.08,
          kisilik: "komik, zıplamayı ve şakaları seven kurbağa"}
     gunluk_video: 2
     yayin_saatleri: ["16:00", "19:30"]   # okul çıkışı + akşam yemeği sonrası

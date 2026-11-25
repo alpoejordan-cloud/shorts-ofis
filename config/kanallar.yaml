@@ -17,7 +17,7 @@ kanallar:
     yayin_saatleri: ["17:00", "23:00"]  # ABD sabahı + ABD öğleden sonrası
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 28        # Bilim ve Teknoloji
-    kelime_araligi: [70, 115]
+    kelime_araligi: [65, 100]   # 25-40 sn: tamamlanma oranı için kısa tut
     otomatik_onay: true         # kullanıcı açtı 2026-11-25; yalnız kalite kontrolünden geçen video, geçmeyen masaya
     trend:
       youtube: {bolge: US, kategori: 28}
@@ -34,7 +34,7 @@ kanallar:
 
   - id: finans_tr
     ad: "Cebine Bilgi"
-    aktif: true
+    aktif: false                # 2026-11-25 beklemede (kullanıcı): öncelik Tech in 30 ve Open World Insider
     dil: tr
     nis: "Kişisel finans, para yönetimi ve ekonomi gündemi; sade Türkçe, günlük hayata dönük"
     ses: tr_TR-dfki-medium
@@ -70,7 +70,7 @@ kanallar:
     yayin_saatleri: ["19:00", "02:00"]  # Avrupa akşamı + ABD akşamı
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 20        # Oyun
-    kelime_araligi: [60, 110]
+    kelime_araligi: [60, 95]    # 25-40 sn
     otomatik_onay: true         # kullanıcı açtı 2026-11-25; kampanya klipleri yine masaya düşer
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
     klip_orani: 0.3             # videoların ~%30'u izinli kampanya klibi (klip varsa); gerisi haber/yorum

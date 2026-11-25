@@ -33,9 +33,10 @@ def kontrol() -> list[tuple[str, bool, bool, str]]:
         s.append(("Python paketi kokoro-onnx (kaliteli İngilizce ses)",
                   importlib.util.find_spec("kokoro_onnx") is not None, False,
                   "pip install -r requirements.txt (yoksa Piper yedek sesi kullanılır)"))
-    s.append(("Gemini (ikinci yapay zeka: senaryo/SEO denetimi)",
-              bool(ortam("GEMINI_API_ANAHTARI")) and importlib.util.find_spec("google.genai") is not None, False,
-              "İsteğe bağlı: aistudio.google.com/apikey adresinden anahtar al, .env'ye GEMINI_API_ANAHTARI=... yaz"))
+    from .gemini import baglanti_testi
+
+    g_tamam, g_mesaj = baglanti_testi()
+    s.append(("Gemini (konu puanlama, kanca/başlık, senaryo, SEO, denetim)", g_tamam, False, g_mesaj))
     s.append(("OpenCV (yüz kamerası tespiti)", importlib.util.find_spec("cv2") is not None, False,
               "pip install -r requirements.txt (yoksa kampanya klipleri tam dikey kırpılır)"))
     s.append(("Stok video anahtarı (Pexels veya Pixabay)",

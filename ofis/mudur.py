@@ -80,13 +80,38 @@ def yarim_isleri_surdur() -> None:
             is_ilerlet(i)
 
 
-def gunluk_hedef(k: dict[str, Any]) -> int:
-    """Bugün bu kanal için kaç yeni iş açılmalı (onay bekleyenler birikmesin)."""
-    bugun = datetime.now().date().isoformat()
-    bugun_acilan = sum(1 for i in isler(kanal_id=k["id"]) if i.olusturma[:10] == bugun)
+GECE_PENCERESI = (12, 22)  # 02:30 çalışması bu saatlerdeki slotları doldurur (17:00, 19:00, 20:00)
+
+
+def calisma_penceresi(simdi: datetime | None = None) -> str:
+    """Öğleden önce başlayan çalışma 'gece' (ertesi akşam slotları), sonrası 'aksam' (o gecenin geç slotları)."""
+    return "gece" if (simdi or datetime.now()).hour < 12 else "aksam"
+
+
+def penceredeki_slotlar(k: dict[str, Any], pencere: str) -> int:
+    saatler = [int(s.split(":")[0]) for s in (k.get("yayin_saatleri") or ["18:00"])]
+    gece = sum(GECE_PENCERESI[0] <= h < GECE_PENCERESI[1] for h in saatler)
+    return gece if pencere == "gece" else len(saatler) - gece
+
+
+def _yerel(zaman: str) -> datetime:
+    """İşlerin oluşturma zamanı UTC saklanır; pencere/gün hesabı bilgisayarın yerel saatiyle yapılır."""
+    z = datetime.fromisoformat(zaman)
+    return z.astimezone().replace(tzinfo=None) if z.tzinfo else z
+
+
+def gunluk_hedef(k: dict[str, Any], simdi: datetime | None = None) -> int:
+    """Bu çalışmada bu kanal için kaç yeni iş açılmalı: çalışmanın penceresindeki slot sayısı kadar
+    (günlük toplam gunluk_video'yu aşmadan, onay bekleyenler birikmeden)."""
+    simdi = simdi or datetime.now()
+    bugun = simdi.date().isoformat()
+    pencere = calisma_penceresi(simdi)
+    bugunkuler = [i for i in isler(kanal_id=k["id"]) if _yerel(i.olusturma).date().isoformat() == bugun]
+    bu_pencere = sum(1 for i in bugunkuler if calisma_penceresi(_yerel(i.olusturma)) == pencere)
     bekleyen = len(isler("onay_bekliyor", k["id"])) + len(isler("onaylandi", k["id"]))
     tampon = k.get("en_fazla_bekleyen", 6)
-    return max(0, min(k.get("gunluk_video", 1) - bugun_acilan, tampon - bekleyen))
+    kalan_gun = k.get("gunluk_video", 1) - len(bugunkuler)
+    return max(0, min(penceredeki_slotlar(k, pencere) - bu_pencere, kalan_gun, tampon - bekleyen))
 
 
 def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
@@ -142,6 +167,10 @@ def gunluk_calisma() -> None:
             log.error("Eksik: %s -> %s", ad, cozum)
         log.error("Zorunlu eksikler var, üretim atlandı. 'python -m ofis doktor' ile bak.")
     else:
+        try:  # önce hazır (onaylı) videolar yüklensin ki yakın slotu (ör. 19:00) kaçırmasınlar
+            yukleyici.yukle_hepsi()
+        except Exception as e:
+            log.error("Ön yükleme çalışmadı: %s", e)
         uret()
     try:
         yukleyici.yukle_hepsi()

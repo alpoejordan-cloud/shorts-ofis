@@ -17,11 +17,30 @@ log = gunluk_al("senarist")
 DIL_ADI = {"tr": "Türkçe", "en": "English"}
 
 
+def en_iyi_format(kanal_id: str, formatlar: list[str], en_az_video: int = 3) -> str | None:
+    """Analistin icgoruler dosyasına göre en yüksek ortalama izlenmeli format (yeterli veri yoksa None)."""
+    from ..cekirdek import VERI
+
+    yol = VERI / "icgoruler" / f"{kanal_id}.json"
+    try:
+        veri = json.loads(yol.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if veri.get("video", 0) < en_az_video:
+        return None
+    ort = {f: n for f, n in (veri.get("format_ortalamalari") or {}).items() if f in formatlar}
+    return max(ort, key=ort.get) if ort else None
+
+
 def format_sec(k: dict[str, Any], mod: str) -> str:
     """Son videolarda en az kullanılan formatı seçer."""
     formatlar = k.get("formatlar") or ["kısa bilgi + yorum"]
     if mod == "izinli_klip":
         formatlar = k.get("klip_formatlari") or ["klibin bağlamı + yorum + ders"]
+    # analistin haftalık notu: yeterli veri varsa %60 olasılıkla en çok izlenen format seçilir
+    en_iyi = en_iyi_format(k["id"], formatlar)
+    if en_iyi and random.random() < 0.6:
+        return en_iyi
     son = [i.veri.get("format") for i in isler(kanal_id=k["id"])[-30:]]
     sayac = Counter(son)
     en_az = min(sayac.get(f, 0) for f in formatlar)
@@ -218,6 +237,49 @@ JSON fields:
 
 
 
+def sayilar_kaynakta(metin: str, kaynak_metni: str) -> bool:
+    """Metindeki her sayı kaynak makalede geçiyor mu (başlık/kanca/açıklama için)."""
+    import re
+
+    def sade(x: str) -> str:
+        return re.sub(r"(?<=\d)[.,](?=\d)", "", x)
+
+    kaynak = sade(kaynak_metni)
+    return all(sade(n.rstrip(".,")) in kaynak for n in re.findall(r"\d[\d.,]*", metin))
+
+
+def gemini_ile_gelistir(s: dict[str, Any], k: dict[str, Any], kaynak_metni: str, is_id: str = "") -> dict[str, Any]:
+    """Gemini varsa: senaryoyu akıcılaştırır, 5 kanca/başlık seçeneğinden en iyisini alır, SEO önerir.
+    Her öneri kaynak doğrulamasından geçmezse Ollama'nın hâli korunur. Gemini yoksa s aynen döner."""
+    from .. import gemini
+    from ..kalite import kaynakla_karsilastir
+
+    if not kaynak_metni or not gemini.hazir_mi():
+        return s
+    yeni = gemini.senaryoyu_akicilastir(s, k, kaynak_metni)
+    if yeni:
+        aday = {**s, "senaryo_cumleleri": yeni}
+        senaryo_birlestir(aday)
+        sorun = dogrula(aday, k) or kaynakla_karsilastir(aday["senaryo"], kaynak_metni)
+        if not sorun:
+            s = aday
+            log.info("%s: senaryo Gemini ile akıcılaştırıldı", is_id)
+        else:
+            log.info("%s: Gemini senaryosu kullanılmadı (%s)", is_id, "; ".join(sorun))
+    kb = gemini.kanca_ve_baslik(s, k, kaynak_metni)
+    if (kb and not kanca_yarim_mi(kb["kanca_metni"]) and len(kb["baslik"]) <= 95
+            and sayilar_kaynakta(kb["baslik"] + " " + kb["kanca_metni"], kaynak_metni)):
+        s = {**s, **kb}
+        log.info("%s: Gemini kanca/başlık: %s | %s", is_id, kb["kanca_metni"], kb["baslik"])
+    seo = gemini.seo_onerisi({"baslik": s.get("baslik"), "senaryo": s.get("senaryo")}, k)
+    if seo:
+        if seo["etiketler"]:
+            s = {**s, "etiketler": seo["etiketler"] + [e for e in s.get("etiketler", []) if e not in seo["etiketler"]]}
+        if seo["aciklama"] and "http" not in seo["aciklama"] and sayilar_kaynakta(seo["aciklama"], kaynak_metni):
+            s = {**s, "aciklama": seo["aciklama"]}
+    return s
+
+
 def gemini_ile_iyilestir(s: dict[str, Any], k: dict[str, Any], fikir: dict[str, Any], sistem: str,
                          kullanici: str, is_id: str = "", tur: int = 2) -> tuple[dict[str, Any], dict | None]:
     """Ollama yazdı; Gemini eleştirir, Ollama düzeltir (en fazla `tur` kez). Gemini yoksa s aynen döner."""
@@ -255,6 +317,7 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
     mod = fikir.get("mod", "normal")
     fmt = format_sec(k, mod)
     kalip = random.choice(KANCA_KALIPLARI)
+    is_.veri["kanca_kalibi"] = kalip  # analist hangi kanca türünün tuttuğunu öğrensin
     klip_notu = ""
     if mod == "izinli_klip":
         klip_notu = (
@@ -286,7 +349,7 @@ Angle: {fikir.get('aci', '')}
 Sources: {', '.join(fikir.get('kaynaklar', [])) or 'none'}
 Format for this video: {fmt}
 Hook style for this video: {kalip}
-Narration length: {k.get('kelime_araligi', [60, 120])[0]}-{k.get('kelime_araligi', [60, 120])[1]} words (about 25-45 seconds).
+Narration length: {k.get('kelime_araligi', [60, 120])[0]}-{k.get('kelime_araligi', [60, 120])[1]} words (25-40 seconds; shorter keeps viewers to the end).
 Extra notes: {k.get('senarist_notu', '')}{klip_notu}
 {f'''
 SOURCE ARTICLE (the ONLY allowed facts; do not add anything that is not here):
@@ -295,9 +358,9 @@ SOURCE ARTICLE (the ONLY allowed facts; do not add anything that is not here):
 """
 ''' if kaynak_metni else ''}
 JSON fields:
-- "baslik": title under 70 characters, include #shorts at the end
+- "baslik": title under 60 characters that creates curiosity (a question, a surprising fact from the article or a "why/how" angle) AND has the main keyword of the topic (product/game/company name) in the first 3 words; no clickbait lies; include #shorts at the end
 - "kanca_metni": big on-screen hook text for the first 3 seconds, 3 to 6 words, punchy, in the hook style above, no hashtags, no emojis
-- "senaryo_cumleleri": a list of 7 to 9 narration sentences, EACH sentence 10 to 16 words long. Sentence 1 is the spoken hook (same idea as kanca_metni, hook style above, no greeting, no "in this video"). Every next sentence must add new information or tension so viewers keep watching. The last one asks the viewer a question. Narration only, no stage directions, no emojis
+- "senaryo_cumleleri": a list of 6 to 8 narration sentences, EACH sentence 9 to 14 words long. Sentence 1 is the spoken hook (same idea as kanca_metni, hook style above, no greeting, no "in this video"); it must create tension within the first second. Every next sentence must add new information or tension so viewers keep watching. LOOP: the last sentence must flow naturally back into sentence 1 when the video repeats (e.g. a short question or half-thought that sentence 1 answers), so viewers rewatch. Narration only, no stage directions, no labels like "Why this matters:", no emojis
 - "aciklama": 2-3 sentence description; list the sources at the end
 - "etiketler": 5-10 tags
 - "gorsel_kelimeler": 6-8 short ENGLISH search terms for photos/footage, concrete and visual (objects, places, people doing things, brand products), in narration order
@@ -316,6 +379,7 @@ JSON fields:
         kullanici += f"\n\nPrevious attempt had problems: {'; '.join(sorunlar)}. Fix them."
     else:
         raise ValueError(f"Senaryo 3 denemede kurallara uymadı: {sorunlar}")
+    s = gemini_ile_gelistir(s, k, kaynak_metni, is_.id)
     s, denetim = gemini_ile_iyilestir(s, k, fikir, sistem, kullanici, is_.id)
     if denetim is not None:
         is_.veri["gemini_denetim"] = denetim

@@ -54,16 +54,44 @@ def ozet(kanal_isleri: list[Is]) -> dict[str, Any]:
     izl = lambda i: i.veri["istatistik"]["izlenme"]  # noqa: E731
     sirali = sorted(olculen, key=izl, reverse=True)
     formatlar: dict[str, list[int]] = defaultdict(list)
+    kancalar: dict[str, list[int]] = defaultdict(list)
+    kaynaklar: dict[str, list[int]] = defaultdict(list)
     for i in olculen:
         formatlar[i.veri.get("format", "?")].append(izl(i))
-    return {
+        if i.veri.get("kanca_kalibi"):
+            kancalar[i.veri["kanca_kalibi"]].append(izl(i))
+        for lnk in i.veri.get("kaynaklar", [])[:1]:
+            kaynaklar[lnk.split("/")[2] if "//" in lnk else lnk].append(izl(i))
+    sonuc = {
         "video": len(olculen),
         "toplam_izlenme": sum(map(izl, olculen)),
         "ortalama_izlenme": round(mean(map(izl, olculen))),
-        "en_iyi": [{"baslik": i.veri["baslik"], "izlenme": izl(i), "konu": i.veri.get("konu")} for i in sirali[:5]],
+        "en_iyi": [{"baslik": i.veri["baslik"], "izlenme": izl(i), "konu": i.veri.get("konu"),
+                    "format": i.veri.get("format"), "sure": i.veri.get("sure")} for i in sirali[:5]],
         "en_kotu": [{"baslik": i.veri["baslik"], "izlenme": izl(i), "konu": i.veri.get("konu")} for i in sirali[-3:]],
         "format_ortalamalari": {f: round(mean(v)) for f, v in formatlar.items()},
+        "kanca_ortalamalari": {f: round(mean(v)) for f, v in kancalar.items()},
+        "kaynak_ortalamalari": {f: round(mean(v)) for f, v in kaynaklar.items()},
     }
+    sonuc["oneriler"] = oneriler(sonuc)
+    return sonuc
+
+
+def oneriler(o: dict[str, Any], en_az: int = 3) -> list[str]:
+    """Trend araştırmacısı ve senaristin okuyacağı kısa dersler (yeterli veri varsa)."""
+    if o.get("video", 0) < en_az:
+        return ["Henüz yeterli veri yok (en az 3 ölçülen video); çeşitli format ve konular dene."]
+    notlar = []
+    for ad, anahtar in (("format", "format_ortalamalari"), ("kanca türü", "kanca_ortalamalari"),
+                        ("kaynak site", "kaynak_ortalamalari")):
+        d = o.get(anahtar) or {}
+        if len(d) >= 2:
+            en_iyi, en_kotu = max(d, key=d.get), min(d, key=d.get)
+            notlar.append(f"En iyi {ad}: '{en_iyi}' (ort. {d[en_iyi]:,} izlenme); en zayıf: '{en_kotu}' ({d[en_kotu]:,}).")
+    if o.get("en_iyi"):
+        konular = ", ".join(str(v.get("konu")) for v in o["en_iyi"][:3])
+        notlar.append(f"En çok izlenen konular: {konular}. Benzer konuları öne al.")
+    return notlar
 
 
 def rapor_yaz() -> str:

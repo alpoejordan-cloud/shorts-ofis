@@ -14,7 +14,7 @@ from ofis.yapay_zeka import json_ayikla
 
 def test_kanallar_yukleniyor():
     aktif = cekirdek.kanallar()
-    assert {k["id"] for k in aktif} == {"teknoloji_en", "finans_tr", "gta_en"}
+    assert {k["id"] for k in aktif} == {"teknoloji_en", "gta_en"}  # finans_tr beklemede
     for k in cekirdek.kanallar(sadece_aktif=False):
         assert k["dil"] in {"tr", "en"} and k["ses"] and k["nis"]
 
@@ -560,3 +560,55 @@ def test_konu_filtresi_yanlis_pozitif_yok():
                   "GTA 6 is great because of all its murderous NPCs"]:
         assert yasak_konu(temiz) is None, temiz
     assert yasak_konu("Covid aşısı yeniden gündemde") == "sağlık"
+
+
+def test_uretim_pencereleri(monkeypatch):
+    from datetime import datetime
+    from ofis import mudur
+    tech = {"id": "teknoloji_en", "gunluk_video": 2, "yayin_saatleri": ["17:00", "23:00"]}
+    finans = {"id": "finans_tr", "gunluk_video": 1, "yayin_saatleri": ["20:00"]}
+    assert mudur.penceredeki_slotlar(tech, "gece") == 1 and mudur.penceredeki_slotlar(tech, "aksam") == 1
+    assert mudur.penceredeki_slotlar(finans, "gece") == 1 and mudur.penceredeki_slotlar(finans, "aksam") == 0
+    monkeypatch.setattr(mudur, "isler", lambda *a, **kw: [])
+    assert mudur.gunluk_hedef(tech, datetime(2026, 11, 25, 2, 30)) == 1
+    assert mudur.gunluk_hedef(tech, datetime(2026, 11, 25, 18, 30)) == 1
+    assert mudur.gunluk_hedef(finans, datetime(2026, 11, 25, 18, 30)) == 0
+
+
+def test_pencere_utc_kaydini_yerel_saate_cevirir():
+    from ofis import mudur
+    z = mudur._yerel("2026-11-25T23:30:00+00:00")
+    assert z.tzinfo is None
+
+
+def test_gemini_sayac_ve_sinir(monkeypatch, tmp_path):
+    from ofis import gemini
+    monkeypatch.setattr(gemini, "_sayac_yolu", lambda: tmp_path / "s.json")
+    monkeypatch.setenv("GEMINI_API_ANAHTARI", "x")
+    monkeypatch.setenv("GEMINI_GUNLUK_SINIR", "2")
+    assert gemini.hazir_mi()
+    gemini._say(); gemini._say()
+    assert gemini.bugunku_istek() == 2 and not gemini.hazir_mi()
+
+
+def test_gemini_gelistirme_kaynak_disini_reddeder(monkeypatch):
+    from ofis import gemini
+    from ofis.ajanlar import senarist
+    kaynak = "GTA 6 sold 25 million copies in a week, Rockstar said."
+    monkeypatch.setattr(gemini, "hazir_mi", lambda: True)
+    monkeypatch.setattr(gemini, "senaryoyu_akicilastir", lambda *a: ["GTA 6 sold 40 million copies, says Take-Two."])
+    monkeypatch.setattr(gemini, "kanca_ve_baslik", lambda *a: {"kanca_metni": "25 million in a week", "baslik": "GTA 6 hit 25 million? #shorts"})
+    monkeypatch.setattr(gemini, "seo_onerisi", lambda *a: {"etiketler": ["GTA 6 sales"], "aciklama": "GTA 6 sold 99 million."})
+    s = {"senaryo": "eski", "baslik": "eski #shorts", "kanca_metni": "eski kanca", "etiketler": ["gta"], "aciklama": "eski"}
+    sonuc = senarist.gemini_ile_gelistir(s, {"kelime_araligi": [1, 50]}, kaynak)
+    assert sonuc["senaryo"] == "eski"                                  # kaynakta olmayan 40 / Take-Two reddedildi
+    assert sonuc["kanca_metni"] == "25 million in a week"              # kaynakla uyumlu kanca alındı
+    assert sonuc["etiketler"][0] == "GTA 6 sales" and sonuc["aciklama"] == "eski"  # 99 kaynakta yok
+
+
+def test_analist_oneri_uretir():
+    from ofis.ajanlar import analist
+    o = {"video": 4, "format_ortalamalari": {"a": 100, "b": 900}, "kanca_ortalamalari": {"x": 50, "y": 70},
+         "kaynak_ortalamalari": {}, "en_iyi": [{"konu": "GTA 6 sales"}]}
+    notlar = analist.oneriler(o)
+    assert any("'b'" in n for n in notlar) and any("GTA 6 sales" in n for n in notlar)

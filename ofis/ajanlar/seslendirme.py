@@ -118,13 +118,18 @@ def _grup(simdiki: list[dict[str, Any]]) -> dict[str, Any]:
                           for x in simdiki]}
 
 
-def kelimeleri_grupla(kelimeler: list[dict[str, Any]], en_fazla: int = 3) -> list[dict[str, Any]]:
-    """Kelime zamanlarını ekranda 1-3 kelimelik parçalara böler."""
+def kelimeleri_grupla(kelimeler: list[dict[str, Any]], en_fazla: int = 3,
+                      en_fazla_karakter: int = 16) -> list[dict[str, Any]]:
+    """Kelime zamanlarını ekranda 1-3 kelimelik, tek satıra sığan (en fazla ~16 harf) parçalara böler."""
     gruplar: list[dict[str, Any]] = []
     simdiki: list[dict[str, Any]] = []
     for k in kelimeler:
         if not str(k["kelime"]).strip():
             continue
+        uzunluk = sum(len(str(x["kelime"]).strip()) + 1 for x in simdiki) + len(str(k["kelime"]).strip())
+        if simdiki and uzunluk > en_fazla_karakter:  # okunabilirlik: satır taşmasın
+            gruplar.append(_grup(simdiki))
+            simdiki = []
         simdiki.append(k)
         noktalama = k["kelime"].rstrip().endswith((".", ",", "!", "?", ":", ";"))
         if len(simdiki) >= en_fazla or noktalama:
@@ -259,7 +264,7 @@ def ses_dizisi(ses_dosyasi: Path):
 def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
     from faster_whisper import WhisperModel
 
-    model = WhisperModel("small", device="cpu", compute_type="int8")
+    model = WhisperModel("small", device="cpu", compute_type="int8", cpu_threads=2)  # bilgisayarı yormasın
     # Sesi FFmpeg ile 16 kHz diziye çeviriyoruz; böylece PyAV sürüm uyumsuzlukları sorun olmaz
     dizi = ses_dizisi(ses_dosyasi)
     try:

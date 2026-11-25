@@ -19,7 +19,7 @@ log = gunluk_al("kaynak")
 KLASOR = VERI / "kaynak_metin"
 UA = "Mozilla/5.0 (compatible; shorts-ofis/0.2; haber dogrulama)"
 EN_AZ_METIN = 400
-EN_ESKI_GUN = 4
+EN_ESKI_SAAT = 48  # haber tazeliği: son 48 saat, en yenisi önce
 
 RSS_VARSAYILAN: dict[str, dict[str, Any]] = {
     "teknoloji_en": {"akislar": ["https://www.theverge.com/rss/index.xml", "https://techcrunch.com/feed/",
@@ -91,7 +91,7 @@ def makaleler(k: dict[str, Any], adet: int = 60) -> list[dict[str, str]]:
     ozel = (k.get("trend") or {}).get("rss")
     if ozel:
         ayar = {"akislar": ozel.get("akislar", ayar["akislar"]), "filtre": ozel.get("filtre", ayar["filtre"])}
-    sinir = time.time() - EN_ESKI_GUN * 86400
+    sinir = time.time() - EN_ESKI_SAAT * 3600
     sonuc, gorulen = [], set()
     for adres in ayar["akislar"]:
         try:
@@ -113,9 +113,11 @@ def makaleler(k: dict[str, Any], adet: int = 60) -> list[dict[str, str]]:
                 log.info("Konu filtresi (%s): %s", yasak, baslik)
                 continue
             gorulen.add(link)
+            yas = round((time.time() - time.mktime(zaman)) / 3600) if zaman else EN_ESKI_SAAT - 1
             sonuc.append({"kaynak": re.sub(r"^https?://(www\.)?", "", adres).split("/")[0],
-                          "baslik": baslik, "link": link, "ozet": ozet})
-    log.info("%s: %d güncel makale bulundu", k.get("id"), len(sonuc))
+                          "baslik": baslik, "link": link, "ozet": ozet, "yas_saat": yas})
+    sonuc.sort(key=lambda m: m["yas_saat"])  # en taze haber önce
+    log.info("%s: %d güncel makale bulundu (son %d saat)", k.get("id"), len(sonuc), EN_ESKI_SAAT)
     return sonuc[:adet]
 
 

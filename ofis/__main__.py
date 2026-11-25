@@ -21,6 +21,17 @@ import sys
 from collections import Counter
 
 
+def dusuk_oncelik() -> None:
+    """Ağır işler 'normalin altı' öncelikle çalışır; alt süreçler (ffmpeg) de bunu devralır."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x4000)
+        except Exception:
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -45,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
     yy = alt.add_parser("yayinla")
     yy.add_argument("isler", nargs="+")
     a = p.parse_args(argv)
+    if a.komut in {"gunluk", "uret", "yukle", "yayinla"}:
+        dusuk_oncelik()
     if a.komut == "yayinla":
         # Senin komutunla: verilen işleri onaylar ve zamanlamadan HEMEN herkese açık yükler
         from .ajanlar import yukleyici

@@ -18,6 +18,13 @@ def _adres() -> str:
     return ortam("OLLAMA_ADRES", "http://127.0.0.1:11434").rstrip("/")
 
 
+def is_parcacigi() -> int:
+    """Ollama'nın kullanacağı çekirdek sayısı: varsayılan çekirdeklerin yarısı (bilgisayar kullanılabilir kalsın)."""
+    import os
+
+    return int(ortam("OLLAMA_IS_PARCACIGI", "0") or 0) or max(2, (os.cpu_count() or 4) // 2)
+
+
 def model_adi() -> str:
     return ortam("OLLAMA_MODEL", "qwen3:8b")
 
@@ -52,7 +59,9 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.8, deneme: int = 3
                 ],
                 "stream": False,
                 "format": "json",
-                "options": {"temperature": sicaklik, "num_ctx": 8192},
+                "options": {"temperature": sicaklik, "num_ctx": 8192, "num_thread": is_parcacigi()},
+                # model iş bitince 2 dk içinde bellekten boşalsın (16 GB RAM'de bilgisayarı yormasın)
+                "keep_alive": ortam("OLLAMA_KEEP_ALIVE", "2m"),
             }
             if model_adi().startswith(("qwen3", "deepseek-r1")):
                 istek["think"] = False  # düşünme modu CPU'da çok yavaş; JSON için gerekmez

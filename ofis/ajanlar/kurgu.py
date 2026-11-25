@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from ..cekirdek import KOK, Is, gunluk_al
+from ..cekirdek import KOK, Is, gunluk_al, ortam
 
 log = gunluk_al("kurgu")
 G, Y, FPS = 1080, 1920, 30
@@ -26,6 +26,7 @@ OLCEK = f"scale={G}:{Y}:force_original_aspect_ratio=increase,crop={G}:{Y},setsar
 GECIS = 0.3
 GECIS_TURLERI = ["fade", "slideleft", "slideup", "smoothleft", "circleopen", "zoomin", "smoothup", "wipeleft"]
 HAREKETLER = ["yakin", "sag", "uzak", "sol", "yukari"]
+VURUS_KARE = 15  # ilk sahnedeki hızlı vuruş (30 fps'te yarım saniye)
 RENK = "eq=contrast=1.07:saturation=1.2:brightness=0.01,unsharp=5:5:0.45:5:5:0.0,vignette=angle=PI/5"
 SES_NORMAL = "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
 KODLA = ["-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", str(FPS)]
@@ -39,7 +40,11 @@ def ffmpeg_yolu() -> str:
 
 
 def calistir(arglar: list[str], klasor: Path) -> None:
-    sonuc = subprocess.run([ffmpeg_yolu(), "-y", "-hide_banner", "-loglevel", "error", *arglar],
+    # bilgisayar yavaşlamasın: ffmpeg en fazla FFMPEG_IS_PARCACIGI (varsayılan 2) çekirdek kullanır
+    n = ortam("FFMPEG_IS_PARCACIGI", "2")
+    arglar = [*arglar[:-1], "-threads", n, arglar[-1]] if arglar else arglar
+    sonuc = subprocess.run([ffmpeg_yolu(), "-y", "-hide_banner", "-loglevel", "error", "-filter_threads", n,
+                            "-filter_complex_threads", n, *arglar],
                            cwd=klasor, capture_output=True, text=True)
     if sonuc.returncode != 0:
         raise RuntimeError(f"FFmpeg hatası: {sonuc.stderr[-1500:]}")
@@ -85,6 +90,8 @@ def kesim_plani(sahneler: list[dict[str, Any]], toplam: float, kesme: float = 2.
         secenek = [h for h in HAREKETLER if h != son_hareket]
         hareket = secenek[(i + tekrar * 2 + rnd.randrange(len(secenek))) % len(secenek)]
         son_hareket = hareket
+        if i == 0 and sahne.get("tur") == "resim":
+            hareket = "vurus"  # ilk 1 saniye: güçlü görsel vuruş (izleyici kaydırmadan önce)
         plan.append({"sahne": sahne, "tekrar": tekrar, "hareket": hareket,
                      "sure": gorunen + (GECIS if i < n - 1 else 0.0),
                      "gecis": rnd.choice(GECIS_TURLERI)})
@@ -168,7 +175,11 @@ def dikey_yerlesim(en: int, boy: int, yuz: list[int] | None) -> str:
 def _zoompan(hareket: str, kare: int) -> str:
     ilerleme = f"(on/{max(kare - 1, 1)})"
     merkez_x, merkez_y = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
-    if hareket == "yakin":
+    if hareket == "vurus":  # ilk sahne: ilk yarım saniyede 1.35'ten hızlı açılma, sonra yavaş itme
+        z = (f"if(lt(on,{VURUS_KARE}),1.35-0.33*on/{VURUS_KARE},"
+             f"1.02+0.06*(on-{VURUS_KARE})/{max(kare - VURUS_KARE, 1)})")
+        x, y = merkez_x, merkez_y
+    elif hareket == "yakin":
         z, x, y = f"1.0+0.12*{ilerleme}", merkez_x, merkez_y
     elif hareket == "uzak":
         z, x, y = f"1.12-0.12*{ilerleme}", merkez_x, merkez_y

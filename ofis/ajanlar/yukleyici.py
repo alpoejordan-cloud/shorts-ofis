@@ -79,7 +79,7 @@ def sonraki_yayin_zamani(k: dict[str, Any], dolu: list[datetime], simdi: datetim
         for s in sorted(saatler):
             sa, dk = map(int, s.split(":"))
             aday = datetime(tarih.year, tarih.month, tarih.day, sa, dk, tzinfo=bolge)
-            if aday > simdi + timedelta(minutes=30) and aday not in dolu_set:
+            if aday > simdi + timedelta(minutes=15) and aday not in dolu_set:  # 18:30 çalışması 19:00 slotunu yakalasın
                 return aday
     raise RuntimeError("60 gün içinde boş yayın saati yok")
 

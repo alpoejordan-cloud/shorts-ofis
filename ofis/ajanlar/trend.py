@@ -156,6 +156,12 @@ def gemini_beyin_firtinasi(fikirler: list[dict[str, Any]], k: dict[str, Any], si
             fikirler = yeni
     return fikirler
 
+def gemini_siralamasi(makale: list[dict[str, Any]], k: dict[str, Any]) -> list[int] | None:
+    from .. import gemini
+
+    return gemini.makaleleri_puanla(makale, k) if gemini.hazir_mi() else None
+
+
 def fikir_bul(k: dict[str, Any], adet: int) -> list[dict[str, Any]]:
     """Kanal için en fazla `adet` video fikri döner. Her fikir gerçek bir haber makalesine bağlıdır
     (kaynaklar = o makalenin linki, kaynak_metin = saklanan metin). Makaleyle uyuşmayan fikir elenir."""
@@ -174,7 +180,11 @@ def fikir_bul(k: dict[str, Any], adet: int) -> list[dict[str, Any]]:
         # kaynaksız fikir = uydurma riski: bugün bu kanal için üretim yapılmaz
         log.warning("%s: güncel kaynak makale yok, fikir üretilmedi", k["id"])
         return []
-    liste = "\n".join(f"{n + 1}. [{m['kaynak']}] {m['baslik']} | {m['ozet'][:180]}" for n, m in enumerate(makale))
+    sira = gemini_siralamasi(makale, k)
+    if sira:  # Gemini izlenme potansiyeline göre sıraladıysa en umut verici haberler önce gelir
+        makale = [makale[i] for i in sira] + [m for n, m in enumerate(makale) if n not in sira]
+    liste = "\n".join(f"{n + 1}. ({m.get('yas_saat', '?')}h ago) [{m['kaynak']}] {m['baslik']} | {m['ozet'][:160]}"
+                      for n, m in enumerate(makale))
     gecmis = "\n".join(f"- {b}" for b in gecmis_basliklar(k["id"], 60))
     dil_adi = DIL_ADI.get(k["dil"], k["dil"])
     sistem = (
@@ -196,7 +206,8 @@ Daha önce işlenen konular (tekrar etme):
 Analistin notları (neyin tuttuğu):
 {analist_notlari(k['id'])}
 
-En iyi {istenen} haberi seç. "konu" makalenin asıl konusunu aynı anahtar kelimelerle özetler.
+En iyi {istenen} haberi seç. Taze haberi (son 24 saat) öne al; kanalın izleyicisinin merak edeceği
+haberleri seç. "konu" makalenin asıl konusunu aynı anahtar kelimelerle özetler.
 JSON biçimi:
 {{"fikirler": [{{"makale_no": 3, "konu": "makalenin konusu", "aci": "videonun özgün bakış açısı", "neden": "neden şimdi ilgi görür"}}]}}
 

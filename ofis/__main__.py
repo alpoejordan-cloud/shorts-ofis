@@ -12,6 +12,7 @@
   temizle              biten işlerin ara dosyalarını siler (3 gün), eski videoları (30 gün)
   ozet                 bugünün durum özetini yazar (veri/raporlar/)
   yayinla İŞ [İŞ...]   seçilen işleri hemen herkese açık yükler (zamanlama yok)
+  panel                ofisin kontrol panelini açar (http://127.0.0.1:8770)
   hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
 from __future__ import annotations
@@ -53,11 +54,32 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("hatirlat")
     alt.add_parser("temizle")
     alt.add_parser("ozet")
+    pn = alt.add_parser("panel")
+    pn.add_argument("--port", type=int)
+    pn.add_argument("--acma", action="store_true", help="tarayıcıyı otomatik açma")
     yy = alt.add_parser("yayinla")
     yy.add_argument("isler", nargs="+")
     a = p.parse_args(argv)
     if a.komut in {"gunluk", "uret", "yukle", "yayinla"}:
         dusuk_oncelik()
+    if a.komut in KOMUT_ADLARI:
+        from .olay import calisiyor
+
+        with calisiyor("mudur", KOMUT_ADLARI[a.komut], komut=a.komut):
+            return _calistir(a)
+    return _calistir(a)
+
+
+KOMUT_ADLARI = {
+    "gunluk": "günlük çalışmayı yönetiyor (üret + yükle)",
+    "uret": "video üretimini yönetiyor",
+    "yukle": "onaylı videoları yüklüyor",
+    "yayinla": "seçilen videoları hemen yayınlıyor",
+    "rapor": "haftalık raporu hazırlıyor",
+}
+
+
+def _calistir(a: argparse.Namespace) -> int:
     if a.komut == "yayinla":
         # Senin komutunla: verilen işleri onaylar ve zamanlamadan HEMEN herkese açık yükler
         from .ajanlar import yukleyici
@@ -73,6 +95,11 @@ def main(argv: list[str] | None = None) -> int:
                   f"gizlilik={d.get('privacyStatus', '?')}  başlık={i.veri['seo']['title']}")
             if i.veri.get("kampanya"):
                 print(f"   Content Rewards'a 30 dk içinde gönder: {i.veri['kampanya']}")
+        return 0
+    if a.komut == "panel":
+        from .panel import calistir as panel_calistir
+
+        panel_calistir(a.port, tarayici=not a.acma)
         return 0
     if a.komut == "temizle":
         from .temizlik import temizle

@@ -15,3 +15,5 @@ __pycache__/
 !klipler/oyun_kayitlari/
 klipler/oyun_kayitlari/*
 !klipler/oyun_kayitlari/.gitkeep
+config/*.yedek
+config/*.tmp

@@ -18,6 +18,8 @@
 | Yükleyici | `ofis/ajanlar/yukleyici.py` | YouTube API ile yükler, kanalın yayın saatine zamanlar |
 | Analist | `ofis/ajanlar/analist.py` | İzlenmeleri toplar, haftalık rapor yazar, neyin tuttuğunu trend ajanına bildirir |
 
+| Kontrol paneli | `ofis/panel.py` | Bütün ofisi canlı izlediğin ve yönettiğin sayfa ([docs/PANEL.md](docs/PANEL.md)) |
+
 Akış: `fikir → senaryo → ses → gorsel → video → onay_bekliyor → onaylandi → yuklendi`
 
 ## Kanallar
@@ -40,8 +42,10 @@ Akış: `fikir → senaryo → ses → gorsel → video → onay_bekliyor → on
 ## Komutlar
 
 ```
-python -m ofis doktor | sesleri-indir | yetkilendir KANAL | uret | onay | yukle | rapor | gunluk | durum
+python -m ofis doktor | sesleri-indir | yetkilendir KANAL | uret | onay | yukle | rapor | gunluk | durum | panel
 ```
+
+Kontrol paneli: `panel.bat` dosyasına çift tıkla (ya da `python -m ofis panel`) -> http://127.0.0.1:8770
 
 ## Test
 

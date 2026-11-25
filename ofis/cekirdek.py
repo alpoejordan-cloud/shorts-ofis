@@ -45,6 +45,9 @@ def gunluk_al(ad: str) -> logging.Logger:
         ekran.setFormatter(bicim)
         log.addHandler(dosya)
         log.addHandler(ekran)
+        from .olay import OlayIsleyici  # panelin canlı akışı
+
+        log.addHandler(OlayIsleyici())
     return log
 
 

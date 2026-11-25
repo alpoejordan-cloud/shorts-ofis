@@ -98,7 +98,10 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.3) -> Any | None:
         for model in _model_sirasi():
             try:
                 _say()
-                cevap = _istemci.models.generate_content(model=model, contents=kullanici, config=ayar)
+                from .olay import cagiran_gorev, calisiyor
+
+                with calisiyor(None, cagiran_gorev(), yz="gemini", model=model):
+                    cevap = _istemci.models.generate_content(model=model, contents=kullanici, config=ayar)
             except Exception as e:
                 if _model_yok_mu(e):  # model kaldırılmış ya da yoğun: sıradakini dene
                     son_hata = e

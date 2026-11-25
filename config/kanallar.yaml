@@ -18,7 +18,7 @@ kanallar:
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 28        # Bilim ve Teknoloji
     kelime_araligi: [70, 115]
-    otomatik_onay: false
+    otomatik_onay: true         # kullanıcı açtı 2026-11-25; yalnız kalite kontrolünden geçen video, geçmeyen masaya
     trend:
       youtube: {bolge: US, kategori: 28}
       google_trends: {bolge: US}
@@ -44,7 +44,7 @@ kanallar:
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 27        # Eğitim
     kelime_araligi: [60, 105]
-    otomatik_onay: false
+    otomatik_onay: true         # kullanıcı açtı 2026-11-25; YouTube bağlanınca devreye girer
     trend:
       youtube: {bolge: TR}
       google_trends: {bolge: TR}
@@ -71,7 +71,7 @@ kanallar:
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 20        # Oyun
     kelime_araligi: [60, 110]
-    otomatik_onay: false
+    otomatik_onay: true         # kullanıcı açtı 2026-11-25; kampanya klipleri yine masaya düşer
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
     klip_orani: 0.3             # videoların ~%30'u izinli kampanya klibi (klip varsa); gerisi haber/yorum
     ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne

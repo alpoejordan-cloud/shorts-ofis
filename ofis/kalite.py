@@ -126,7 +126,8 @@ SOYLENTI_KAYNAK = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed
                              r"sızıntı\w*|iddia\w*)\b", re.I)
 SOYLENTI_SENARYO = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed|allegedly|according to|claims?|"
                               r"report(?:s|ed)?|söylenti\w*|sızıntı\w*|iddia\w*|habere göre|bildirildi)\b", re.I)
-YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "ama", "ve", "ile",
+YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "from", "with", "for",
+             "in", "on", "at", "by", "about", "into", "than", "as", "ama", "ve", "ile",
              "için", "bu", "çünkü"}
 SERBEST_AD = {"i", "i'm", "i'd", "i'll", "i've", "ai", "shorts", "youtube", "comment", "comments", "follow"}
 
@@ -155,7 +156,8 @@ def kaynakla_karsilastir(senaryo: str, kaynak_metni: str) -> list[str]:
             kelime = re.split(r"['’]", kelime.strip(".-—"))[0]
             if n == 0 or len(kelime) < 2 or not kelime[0].isupper() or _kucuk(kelime) in SERBEST_AD:
                 continue  # cümle başı büyük harf özel isim sayılmaz
-            if _kucuk(kelime) not in kaynak_kucuk:
+            kok = _kucuk(kelime)
+            if kok not in kaynak_kucuk and not (kok.endswith("s") and kok[:-1] in kaynak_kucuk):  # APIs -> api
                 eksik_ad.append(kelime)
     if eksik_ad:
         sorunlar.append("kaynakta geçmeyen isim: " + ", ".join(list(dict.fromkeys(eksik_ad))[:5]))

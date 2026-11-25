@@ -64,7 +64,8 @@ KANCA_KALIPLARI = [
 ]
 
 
-YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "ama", "ve", "ile",
+YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "from", "with", "for",
+             "in", "on", "at", "by", "about", "into", "than", "as", "ama", "ve", "ile",
              "için", "bu", "çünkü"}
 
 

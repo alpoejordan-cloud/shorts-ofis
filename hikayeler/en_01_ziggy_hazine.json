@@ -1,0 +1,20 @@
+{"tema": "slowing down to notice the little things", "baslik": "Ziggy the Fox Is Too Fast to Find the Treasure",
+ "kanca_metni": "Ziggy is TOO fast!", "ders": "Slowing down helps us notice wonderful things",
+ "aciklama": "Ziggy the fox races everywhere, but gentle Pip finds the golden treasure by going slowly. A playful story about patience and noticing the world around us.",
+ "etiketler": ["patience story for kids", "fox cartoon", "treasure hunt story", "bunny cartoon", "kindergarten story"],
+ "sahneler": [
+  {"yer": "orman", "karakterler": ["ziggy", "pip"], "satirlar": [
+    {"kim": "anlatici", "metin": "Zoom! Ziggy the fox raced through the forest, faster than the wind!", "duygu": "heyecanli"},
+    {"kim": "ziggy", "metin": "Come on, Pip! The fastest one finds the treasure!", "duygu": "heyecanli"},
+    {"kim": "pip", "metin": "Wait, Ziggy! What treasure? I can't see a map!", "duygu": "saskin"}]},
+  {"yer": "gol", "karakterler": ["ziggy", "bloop"], "satirlar": [
+    {"kim": "anlatici", "metin": "Ziggy ran so fast that he zipped right past the pond.", "duygu": "mutlu"},
+    {"kim": "bloop", "metin": "Ribbit! Ziggy, you missed something shiny by the water!", "duygu": "heyecanli"},
+    {"kim": "ziggy", "metin": "Missed it? But I'm the fastest fox in the whole forest!", "duygu": "saskin"}]},
+  {"yer": "gol", "karakterler": ["ziggy", "pip", "luna"], "satirlar": [
+    {"kim": "anlatici", "metin": "Pip hopped over slowly, looking at every flower and every stone.", "duygu": "mutlu"},
+    {"kim": "pip", "metin": "Look! Here it is, a tiny golden acorn under a leaf!", "duygu": "heyecanli"},
+    {"kim": "luna", "metin": "Hoo! Sometimes going slowly helps us see the best things.", "duygu": "mutlu"}]},
+  {"yer": "cayir", "karakterler": ["ziggy", "pip"], "satirlar": [
+    {"kim": "ziggy", "metin": "Next time, let's go slowly together and find more treasures!", "duygu": "heyecanli"},
+    {"kim": "anlatici", "metin": "And from that day on, Ziggy knew that slow can be special too.", "duygu": "mutlu"}]}]}

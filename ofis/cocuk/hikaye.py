@@ -279,6 +279,12 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
         if isinstance(yeni, dict) and not dogrula(yeni, k, fikir):
             h = yeni
             denetim = gemini_denetim(h, k) or denetim
+    hikayeyi_kaydet(is_, k, h, denetim)
+
+
+def hikayeyi_kaydet(is_: Is, k: dict[str, Any], h: dict[str, Any], denetim: dict[str, Any] | None) -> None:
+    """Doğrulanmış hikayeyi işe yazar (başlık, sahneler, açıklama, etiketler)."""
+    fikir = is_.veri
     sahneler = [{"yer": s["yer"], "karakterler": [str(c) for c in s["karakterler"]],
                  "satirlar": [{"kim": str(st["kim"]), "metin": str(st["metin"]).strip(),
                                "duygu": st.get("duygu", "mutlu")} for st in s["satirlar"]]} for s in h["sahneler"]]
@@ -303,3 +309,21 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
     })
     log.info("%s: hikaye hazır: %s (%d sahne, %d kelime)", is_.id, is_.veri["baslik"], len(sahneler),
              _kelime(senaryo))
+
+
+def hazir_hikaye_is(k: dict[str, Any], h: dict[str, Any], tema: str = "") -> Is:
+    """Elle (ya da Claude tarafından) yazılmış hazır hikayeden iş açar: kurallar ve Gemini çocuk
+    denetimi aynen uygulanır, yazım adımı atlanır. Dosya biçimi: hikayeler/*.json"""
+    tema = tema or str(h.get("tema") or h.get("ders") or "hazır hikaye")
+    ilk = h.get("sahneler", [{}])[0]
+    i = Is(kanal=k["id"], veri={"mod": "cocuk_hikaye", "tema": tema, "ana_yer": ilk.get("yer", "cayir"),
+                                "kadro": list(dict.fromkeys(c for s in h.get("sahneler", [])
+                                                            for c in s.get("karakterler", []))),
+                                "konu": f"{tema} | {h.get('baslik', '')}", "hazir_hikaye": True})
+    sorunlar = dogrula(h, k, i.veri)
+    if sorunlar:
+        raise ValueError("Hazır hikaye kurallara uymuyor: " + "; ".join(sorunlar))
+    hikayeyi_kaydet(i, k, h, gemini_denetim(h, k))
+    i.durum = "senaryo"
+    i.kaydet()
+    return i

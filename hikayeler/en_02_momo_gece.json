@@ -1,0 +1,20 @@
+{"tema": "a gentle bedtime and not fearing the dark", "baslik": "Momo the Bear and the Starry Night | Bedtime Story",
+ "kanca_metni": "Momo's lamp went OFF!", "ders": "The night is calm and the stars shine for us",
+ "aciklama": "When Momo's lamp goes off, Pip shows him the twinkling stars and the smiling moon. A calm bedtime story that helps little ones feel cozy at night.",
+ "etiketler": ["bedtime story for kids", "sleep story", "bear cartoon", "night sky for kids", "toddler bedtime"],
+ "sahneler": [
+  {"yer": "oda", "karakterler": ["momo", "pip"], "satirlar": [
+    {"kim": "momo", "metin": "Pip, my lamp went off! Why is my room so dark?", "duygu": "saskin"},
+    {"kim": "pip", "metin": "Don't worry, Momo. Let's go to the window and look outside.", "duygu": "mutlu"}]},
+  {"yer": "gece", "karakterler": ["momo", "pip"], "satirlar": [
+    {"kim": "anlatici", "metin": "Outside, the night sky was full of little twinkling stars.", "duygu": "mutlu"},
+    {"kim": "momo", "metin": "Ooh, they look like tiny night-lights, just for us!", "duygu": "heyecanli"},
+    {"kim": "pip", "metin": "And look, the moon is smiling down at you, Momo!", "duygu": "mutlu"}]},
+  {"yer": "gece", "karakterler": ["momo", "pip", "luna"], "satirlar": [
+    {"kim": "anlatici", "metin": "Then Luna the owl landed softly on a branch nearby.", "duygu": "mutlu"},
+    {"kim": "luna", "metin": "Hoo! The night is calm and quiet, so everyone can rest.", "duygu": "mutlu"},
+    {"kim": "momo", "metin": "So the dark is just a cozy, sleepy blanket for the world!", "duygu": "heyecanli"}]},
+  {"yer": "oda", "karakterler": ["momo"], "satirlar": [
+    {"kim": "anlatici", "metin": "Momo snuggled into bed and waved goodnight to the stars.", "duygu": "mutlu"},
+    {"kim": "momo", "metin": "Goodnight, stars. Goodnight, moon. Goodnight, friends!", "duygu": "mutlu"},
+    {"kim": "anlatici", "metin": "When it is dark, remember the stars are shining just for you.", "duygu": "mutlu"}]}]}

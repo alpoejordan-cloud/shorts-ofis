@@ -1,0 +1,20 @@
+{"tema": "birlikte çalışıp işi bitirmek", "baslik": "Boncuk ve Kocaman Kardan Adam | Çocuk Masalı",
+ "kanca_metni": "Kartopu çok ağır!", "ders": "El ele verince zor işler kolaylaşır",
+ "aciklama": "Boncuk kardan adamı tek başına yapmak ister ama kartopu çok ağırdır. Arkadaşlarıyla el ele verince her şey kolaylaşır. Takım çalışmasını anlatan sıcacık bir kış masalı.",
+ "etiketler": ["kış masalı", "kardan adam", "takım çalışması", "kedi masalı", "çocuk hikayesi"],
+ "sahneler": [
+  {"yer": "kar", "karakterler": ["boncuk", "pamuk"], "satirlar": [
+    {"kim": "anlatici", "metin": "Bir sabah her yer bembeyaz karla kaplanmıştı.", "duygu": "saskin"},
+    {"kim": "boncuk", "metin": "Ben kocaman bir kardan adam yapacağım, hem de tek başıma!", "duygu": "heyecanli"},
+    {"kim": "pamuk", "metin": "Ben de yardım edebilir miyim Boncuk?", "duygu": "mutlu"},
+    {"kim": "boncuk", "metin": "Yok, yok, ben hallederim!", "duygu": "heyecanli"}]},
+  {"yer": "kar", "karakterler": ["boncuk"], "satirlar": [
+    {"kim": "anlatici", "metin": "Boncuk kartopunu itti, itti ama top çok ağırdı.", "duygu": "mutlu"},
+    {"kim": "boncuk", "metin": "Of, bu kartopu hiç kıpırdamıyor! Tek başıma yapamıyorum.", "duygu": "uzgun"}]},
+  {"yer": "kar", "karakterler": ["boncuk", "pamuk", "fistik"], "satirlar": [
+    {"kim": "pamuk", "metin": "Hadi hep birlikte itelim! Bir, iki, üç!", "duygu": "heyecanli"},
+    {"kim": "fistik", "metin": "Ben de küçük bir kartopu yapıp kafasını koyarım!", "duygu": "mutlu"},
+    {"kim": "anlatici", "metin": "Üç arkadaş el ele verdi ve kardan adam kocaman oldu.", "duygu": "mutlu"}]},
+  {"yer": "kar", "karakterler": ["boncuk", "pamuk", "fistik"], "satirlar": [
+    {"kim": "boncuk", "metin": "Birlikte yapınca hem kolay hem de çok eğlenceli oldu!", "duygu": "heyecanli"},
+    {"kim": "anlatici", "metin": "Arkadaşlarla el ele verince en zor işler bile kolaylaşır.", "duygu": "mutlu"}]}]}

@@ -1,0 +1,20 @@
+{"tema": "yardım istemek", "baslik": "Zıpzıp'ın Kayıp Şapkası | Çocuklar İçin Masal",
+ "kanca_metni": "Zıpzıp'ın şapkası nerede?", "ders": "Yardım istemek bizi güçlü yapar",
+ "aciklama": "Zıpzıp turuncu şapkasını kaybeder, arkadaşları birlikte arar ve bulur. Yardım istemenin ve dayanışmanın güzelliğini anlatan kısa bir masal.",
+ "etiketler": ["kurbağa masalı", "yardımlaşma", "kısa masal", "çocuk hikayesi", "okul öncesi masal"],
+ "sahneler": [
+  {"yer": "gol", "karakterler": ["zipzip", "fistik"], "satirlar": [
+    {"kim": "zipzip", "metin": "Eyvah! Turuncu şapkam nerede? Az önce başımdaydı!", "duygu": "saskin"},
+    {"kim": "fistik", "metin": "Merak etme Zıpzıp, birlikte ararsak mutlaka buluruz!", "duygu": "mutlu"}]},
+  {"yer": "orman", "karakterler": ["zipzip", "fistik", "bilge"], "satirlar": [
+    {"kim": "anlatici", "metin": "İki arkadaş ağaçların arasına, yaprakların altına tek tek baktılar.", "duygu": "mutlu"},
+    {"kim": "zipzip", "metin": "Hiçbir yerde yok! Şapkamı bir daha göremeyecek miyim?", "duygu": "uzgun"},
+    {"kim": "bilge", "metin": "Yardım istemek çok akıllıca bir şey. Gelin, ben yukarıdan bakayım!", "duygu": "mutlu"}]},
+  {"yer": "bahce", "karakterler": ["zipzip", "fistik", "pamuk"], "satirlar": [
+    {"kim": "anlatici", "metin": "Bilge yükseğe uçtu ve bahçede turuncu bir şey gördü.", "duygu": "saskin"},
+    {"kim": "pamuk", "metin": "Şapkan buradaymış Zıpzıp! Rüzgar onu çiçeklerin üstüne taşımış.", "duygu": "heyecanli"},
+    {"kim": "zipzip", "metin": "Yaşasın! Hepinize çok teşekkür ederim, siz harikasınız!", "duygu": "heyecanli"}]},
+  {"yer": "cayir", "karakterler": ["zipzip", "fistik", "pamuk"], "satirlar": [
+    {"kim": "fistik", "metin": "Gördün mü? Birlikte aradık, hemen bulduk!", "duygu": "mutlu"},
+    {"kim": "anlatici", "metin": "Zıpzıp sevinçle zıpladı, şapkası da başında neşeyle sallandı.", "duygu": "mutlu"},
+    {"kim": "anlatici", "metin": "Bir şeye ihtiyacımız olduğunda yardım istemek bizi güçlü yapar.", "duygu": "mutlu"}]}]}

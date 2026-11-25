@@ -14,6 +14,7 @@
   yayinla İŞ [İŞ...]   seçilen işleri hemen herkese açık yükler (zamanlama yok)
   panel                ofisin kontrol panelini açar (http://127.0.0.1:8770)
   cocuk-ornek KANAL    çocuk kanalı için karakter/mekan önizleme görseli çizer (veri/raporlar/)
+  cocuk-hikaye KANAL DOSYA...   hazır hikaye dosyalarından (hikayeler/*.json) çocuk videosu üretir
   hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
 from __future__ import annotations
@@ -58,13 +59,16 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("havuz-kur")
     co = alt.add_parser("cocuk-ornek")
     co.add_argument("kanal")
+    ch = alt.add_parser("cocuk-hikaye")
+    ch.add_argument("kanal")
+    ch.add_argument("dosyalar", nargs="+")
     pn = alt.add_parser("panel")
     pn.add_argument("--port", type=int)
     pn.add_argument("--acma", action="store_true", help="tarayıcıyı otomatik açma")
     yy = alt.add_parser("yayinla")
     yy.add_argument("isler", nargs="+")
     a = p.parse_args(argv)
-    if a.komut in {"gunluk", "uret", "yukle", "yayinla"}:
+    if a.komut in {"gunluk", "uret", "yukle", "yayinla", "cocuk-hikaye"}:
         dusuk_oncelik()
     if a.komut in KOMUT_ADLARI:
         from .olay import calisiyor
@@ -119,6 +123,23 @@ def _calistir(a: argparse.Namespace) -> int:
         from .cekirdek import kanal
 
         print("Önizleme:", kadro_gorseli(kanal(a.kanal)))
+        return 0
+    if a.komut == "cocuk-hikaye":
+        import json
+        from pathlib import Path
+
+        from .cekirdek import Is, kanal
+        from .cocuk.hikaye import hazir_hikaye_is
+        from .mudur import is_ilerlet
+
+        k = kanal(a.kanal)
+        for dosya in a.dosyalar:
+            i = hazir_hikaye_is(k, json.loads(Path(dosya).read_text(encoding="utf-8")))
+            is_ilerlet(i)
+            i = Is.yukle(i.id)
+            print(f"{i.id}: {i.durum}  {i.veri.get('baslik')}  {i.klasor / 'video.mp4'}")
+            if i.veri.get("kalite_sorunlari"):
+                print("   kalite:", "; ".join(i.veri["kalite_sorunlari"]))
         return 0
     if a.komut == "ozet":
         from .temizlik import gunluk_ozet

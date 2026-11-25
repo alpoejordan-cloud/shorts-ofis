@@ -243,10 +243,14 @@ def test_muzik_atfi_aciklamaya_eklenir(tmp_path):
 def test_trend_ingilizce_kanalda_turkce_konuyu_duzeltir(monkeypatch):
     from ofis.ajanlar import trend
 
-    monkeypatch.setattr(trend, "ham_trendler", lambda k: [])
+    from ofis import kaynak
+    monkeypatch.setattr(kaynak, "makaleler", lambda k: [
+        {"kaynak": "a", "baslik": "AI security flaw found", "link": "https://a/9", "ozet": ""}])
+    monkeypatch.setattr(kaynak, "metin_al", lambda link: "AI security " * 60)
+    monkeypatch.setattr(trend, "gemini_beyin_firtinasi", lambda f, *a, **kw: f)
     cevaplar = iter([
-        {"fikirler": [{"konu": "Yapay zekâ ve güvenlik", "aci": "Neden önemli?"}]},
-        {"fikirler": [{"konu": "AI and security", "aci": "Why it matters"}]},
+        {"fikirler": [{"makale_no": 1, "konu": "Yapay zekâ ve güvenlik", "aci": "Neden önemli?"}]},
+        {"fikirler": [{"makale_no": 1, "konu": "AI and security", "aci": "Why it matters"}]},
     ])
     monkeypatch.setattr(trend, "sor_json", lambda *a, **kw: next(cevaplar))
     fikirler = trend.fikir_bul(cekirdek.kanal("teknoloji_en"), 1)
@@ -429,8 +433,6 @@ def test_kalite_dil_ve_sayi():
     assert kalite.dil_tutuyor_mu("This is why the new phone is fast and you want it", "en")
     assert not kalite.dil_tutuyor_mu("Bu telefon neden bu kadar hızlı ve çok pahalı bir şey değil", "en")
     assert kalite.dil_tutuyor_mu("Bu telefon neden bu kadar hızlı ve çok pahalı", "tr")
-    i = cekirdek.Is(kanal="finans_tr", veri={"konu": "memur zammı yüzde 11", "senaryo": "Zam yüzde 11 olacak, enflasyon %45 diyorlar."})
-    assert kalite.dogrulanmamis_sayilar(i) == ["%45"]
 
 
 def test_otomatik_onay_kapaliysa_ve_kampanyada_masaya(monkeypatch):
@@ -473,8 +475,10 @@ def test_kalite_gemini_onayi_ve_etiket(tmp_path, monkeypatch):
     v = {"mod": "normal", "baslik": "This is the new phone you want", "kanca_metni": "New phone",
          "senaryo": "This is why the phone is fast. Why this matters: you and the battery."}
     s = kalite.kontrol(cekirdek.Is(kanal="teknoloji_en", veri=v), {"dil": "en"})
-    assert any("Gemini denetimi yok" in x for x in s) and any("etiketi" in x for x in s)
-    v2 = {**v, "senaryo": "This is why the phone is fast and you want it.", "gemini_denetim": {"onay": True}}
+    assert any("kaynak makale metni yok" in x for x in s) and any("etiketi" in x for x in s)
+    v2 = {**v, "senaryo": "This is why the phone is fast and you want it.", "gemini_denetim": {"onay": True},
+          "kaynak_metin": str(tmp_path / "k.txt")}
+    (tmp_path / "k.txt").write_text("The phone is fast.", encoding="utf-8")
     assert kalite.kontrol(cekirdek.Is(kanal="teknoloji_en", veri=v2), {"dil": "en"}) == []
 
 
@@ -483,3 +487,37 @@ def test_seo_tech_basligina_ai_zorlanmaz():
     k = {"id": "teknoloji_en"}
     assert seo.baslik("Tech Privacy Shifts 2026 #shorts", k) == "Tech Privacy Shifts 2026 #shorts"
     assert seo.baslik("New phone leaks #shorts", k).startswith("AI: ")
+
+
+def test_kaynakla_karsilastir():
+    from ofis.kalite import kaynakla_karsilastir
+    kaynak = "Rockstar confirmed GTA 6 sold 25 million copies. A leak claims a PC port; the rumor is unconfirmed by insiders."
+    iyi = "GTA 6 sold 25 million copies, says Rockstar. A rumor says a PC port is coming. I think that's huge."
+    assert kaynakla_karsilastir(iyi, kaynak) == []
+    kotu = "GTA 6 sold 40 million copies. Then Take-Two said a PC port is coming."
+    s = kaynakla_karsilastir(kotu, kaynak)
+    assert any("40" in x for x in s) and any("Take-Two" in x for x in s) and any("rumor" in x for x in s)
+
+
+def test_aciklama_temizle_ve_kaynak_uyusma():
+    from ofis import kaynak
+    from ofis.ajanlar.senarist import aciklama_temizle
+    assert aciklama_temizle("Big news today. Source: Reuters\n\nSources:\nhttps://x.com/a") == "Big news today."
+    assert kaynak.uyusuyor("GTA 6 Call of Duty players", "Call of Duty lost players when GTA 6 came out", "")
+    assert not kaynak.uyusuyor("Apple iPhone battery recall", "Call of Duty lost players", "Activision report")
+
+
+def test_trend_fikri_makaleye_baglar(monkeypatch):
+    from ofis import kaynak
+    from ofis.ajanlar import trend
+    makaleler = [{"kaynak": "a", "baslik": "Call of Duty lost players to GTA 6", "link": "https://a/1", "ozet": ""},
+                 {"kaynak": "b", "baslik": "Nintendo price", "link": "https://b/2", "ozet": ""}]
+    monkeypatch.setattr(kaynak, "makaleler", lambda k: makaleler)
+    monkeypatch.setattr(kaynak, "metin_al", lambda link: "x" * 500 + " call of duty players gta")
+    monkeypatch.setattr(trend, "sor_json", lambda *a, **kw: {"fikirler": [
+        {"makale_no": 2, "konu": "Apple battery recall", "aci": "x"},          # makaleyle uyuşmuyor -> elenir
+        {"makale_no": 1, "konu": "Call of Duty players left for GTA 6", "aci": "y"}]})
+    monkeypatch.setattr(trend, "gemini_beyin_firtinasi", lambda f, *a, **kw: f)
+    monkeypatch.setattr(trend, "isler", lambda **kw: [], raising=False)
+    sonuc = trend.fikir_bul({"id": "zz_test", "dil": "en", "nis": "gaming"}, 1)
+    assert len(sonuc) == 1 and sonuc[0]["kaynaklar"] == ["https://a/1"] and sonuc[0]["kaynak_metin"]

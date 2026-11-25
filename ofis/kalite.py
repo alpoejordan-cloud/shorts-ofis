@@ -21,10 +21,6 @@ LUFS_ARALIGI = (-17.0, -11.0)
 TR_HARF = set("ğışçöüĞİŞÇÖÜ")
 TR_SOZ = {"ve", "bir", "bu", "için", "ile", "çok", "ama", "daha", "gibi", "değil", "neden", "nasıl", "sen", "biz"}
 EN_SOZ = {"the", "and", "is", "you", "this", "that", "of", "to", "in", "for", "what", "why", "how", "it"}
-# yıl, saniye gibi zararsız sayılar hariç "iddia" olabilecek sayılar: yüzde, para, büyük rakamlar
-IDDIA_SAYI = re.compile(r"(?:%\s?\d[\d.,]*|\d[\d.,]*\s?(?:%|percent|yüzde|\$|dolar|dollars?|euro|tl|lira|million|"
-                        r"billion|milyon|milyar|bin)|\$\s?\d[\d.,]*|yüzde\s?\d[\d.,]*)", re.I)
-
 
 # modelin senaryoya sızdırdığı yapı etiketleri ("Why this matters:", "One honest opinion:")
 SAHNE_ETIKETI = re.compile(r"(?:^|[.!?]\s+)((?:why this matters|one honest opinion|hook|intro|outro|cta|"
@@ -67,20 +63,6 @@ def dil_tutuyor_mu(metin: str, dil: str) -> bool:
     return en >= tr if dil == "en" else tr >= en
 
 
-def dogrulanmamis_sayilar(is_: Is) -> list[str]:
-    """Senaryodaki yüzde/para/büyük sayı iddialarından konu, açı ve kaynaklarda geçmeyenler."""
-    v = is_.veri
-    senaryo = str(v.get("senaryo", ""))
-    kaynak = " ".join(str(v.get(a, "")) for a in ("konu", "aci", "neden", "klip_aciklama")).lower()
-    kaynak += " " + " ".join(map(str, v.get("kaynaklar", []))).lower()
-    supheli = []
-    for iddia in IDDIA_SAYI.findall(senaryo):
-        rakam = re.sub(r"[^\d]", "", iddia)
-        if rakam and rakam not in re.sub(r"[^\d ]", "", kaynak):
-            supheli.append(iddia.strip())
-    return supheli
-
-
 def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
     """Geçmeyen maddelerin listesi (boşsa video otomatik yüklenebilir)."""
     v, sorunlar = is_.veri, []
@@ -121,15 +103,59 @@ def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
     if denetim.get("uydurma_suphesi"):
         sorunlar.append("uydurma şüphesi (Gemini): " + "; ".join(denetim["uydurma_suphesi"][:3]))
     if v.get("mod") != "izinli_klip":
-        # seslendirmeli videoda gerçek kontrol ikinci yapay zekadadır: Gemini onayı yoksa otomatik yayın yok
-        if not denetim:
-            sorunlar.append("Gemini denetimi yok (anahtar yok ya da kota doldu): uydurma iddia kontrol edilemedi")
-        elif not denetim.get("onay"):
+        from .kaynak import metin_oku
+
+        senaryo = str(v.get("senaryo", ""))
+        kaynak_metni = metin_oku(v)
+        if denetim and not denetim.get("onay"):
             sorunlar.append("Gemini onaylamadı: " + "; ".join(denetim.get("sorunlar", [])[:3]))
-        etiket = SAHNE_ETIKETI.findall(str(v.get("senaryo", "")))
+        if not kaynak_metni:
+            # kaynak makale yoksa iddialar hiçbir şeyle karşılaştırılamaz: otomatik yayın yok
+            sorunlar.append("kaynak makale metni yok: iddialar doğrulanamadı")
+        else:
+            sorunlar += kaynakla_karsilastir(senaryo + " " + str(v.get("kanca_metni", "")), kaynak_metni)
+        etiket = SAHNE_ETIKETI.findall(senaryo)
         if etiket:
             sorunlar.append("seslendirmede başlık etiketi okunuyor: " + ", ".join(etiket[:3]))
-        supheli = dogrulanmamis_sayilar(is_)
-        if supheli:
-            sorunlar.append("kaynakta geçmeyen sayı/iddia: " + ", ".join(supheli[:4]))
+    return sorunlar
+
+
+SOYLENTI_KAYNAK = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed|insider|speculat\w*|söylenti\w*|"
+                             r"sızıntı\w*|iddia\w*)\b", re.I)
+SOYLENTI_SENARYO = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed|allegedly|according to|claims?|"
+                              r"report(?:s|ed)?|söylenti\w*|sızıntı\w*|iddia\w*|habere göre|bildirildi)\b", re.I)
+SERBEST_AD = {"i", "i'm", "i'd", "i'll", "i've", "ai", "shorts", "youtube", "comment", "comments", "follow"}
+
+
+def _sayi(metin: str) -> str:
+    return re.sub(r"(?<=\d)[.,](?=\d)", "", metin)
+
+
+def _kucuk(metin: str) -> str:
+    return metin.replace("İ", "i").replace("I", "ı").lower() if re.search(r"[ğışçöüİ]", metin) else metin.lower()
+
+
+def kaynakla_karsilastir(senaryo: str, kaynak_metni: str) -> list[str]:
+    """Senaryodaki sayılar ve özel isimler kaynak makalede geçiyor mu; söylenti söylenti diye anılmış mı."""
+    sorunlar = []
+    kaynak_sayi = _sayi(kaynak_metni)
+    sayilar = [n.rstrip(".,") for n in re.findall(r"\d[\d.,]*", senaryo)]
+    eksik_sayi = [n for n in dict.fromkeys(sayilar) if _sayi(n) not in kaynak_sayi]
+    if eksik_sayi:
+        sorunlar.append("kaynakta geçmeyen sayı: " + ", ".join(eksik_sayi[:5]))
+
+    kaynak_kucuk = _kucuk(kaynak_metni)
+    eksik_ad = []
+    for cumle in re.split(r"(?<=[.!?])\s+", senaryo):
+        for n, kelime in enumerate(re.findall(r"[^\s,;:!?()\"“”]+", cumle)):
+            kelime = re.split(r"['’]", kelime.strip(".-—"))[0]
+            if n == 0 or len(kelime) < 2 or not kelime[0].isupper() or _kucuk(kelime) in SERBEST_AD:
+                continue  # cümle başı büyük harf özel isim sayılmaz
+            if _kucuk(kelime) not in kaynak_kucuk:
+                eksik_ad.append(kelime)
+    if eksik_ad:
+        sorunlar.append("kaynakta geçmeyen isim: " + ", ".join(list(dict.fromkeys(eksik_ad))[:5]))
+
+    if len(SOYLENTI_KAYNAK.findall(kaynak_metni)) >= 2 and not SOYLENTI_SENARYO.search(senaryo):
+        sorunlar.append("kaynak söylenti/sızıntı anlatıyor ama senaryo bunu 'rumor/reportedly' diye belirtmiyor")
     return sorunlar

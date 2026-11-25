@@ -157,23 +157,38 @@ def gemini_beyin_firtinasi(fikirler: list[dict[str, Any]], k: dict[str, Any], si
     return fikirler
 
 def fikir_bul(k: dict[str, Any], adet: int) -> list[dict[str, Any]]:
-    """Kanal için `adet` tane video fikri döner."""
-    ham = ham_trendler(k)
-    if not ham:
-        log.warning("%s: hiç trend bulunamadı, model kendi bilgisinden fikir üretecek", k["id"])
-    liste = "\n".join(f"- [{t['kaynak']}] {t['baslik']} ({t['link']})" for t in ham[:80])
+    """Kanal için en fazla `adet` video fikri döner. Her fikir gerçek bir haber makalesine bağlıdır
+    (kaynaklar = o makalenin linki, kaynak_metin = saklanan metin). Makaleyle uyuşmayan fikir elenir."""
+    from .. import kaynak
+    from ..cekirdek import isler
+    from .senarist import konuyu_cevir
+
+    try:
+        makale = kaynak.makaleler(k)
+    except Exception as e:
+        log.warning("%s: haber akışları okunamadı: %s", k["id"], e)
+        makale = []
+    kullanilmis = {lnk for i in isler(kanal_id=k["id"]) for lnk in i.veri.get("kaynaklar", [])}
+    makale = [m for m in makale if m["link"] not in kullanilmis][:50]
+    if not makale:
+        # kaynaksız fikir = uydurma riski: bugün bu kanal için üretim yapılmaz
+        log.warning("%s: güncel kaynak makale yok, fikir üretilmedi", k["id"])
+        return []
+    liste = "\n".join(f"{n + 1}. [{m['kaynak']}] {m['baslik']} | {m['ozet'][:180]}" for n, m in enumerate(makale))
     gecmis = "\n".join(f"- {b}" for b in gecmis_basliklar(k["id"], 60))
+    dil_adi = DIL_ADI.get(k["dil"], k["dil"])
     sistem = (
-        "Sen bir YouTube Shorts kanalının trend araştırmacısısın. Sadece kanalın nişine uyan, "
-        "bugün ilgi gören ve özgün yorum katılabilecek konuları seçersin. Siyaset, trajedi, "
-        "çocuklara yönelik içerik, yetişkin içerik ve doğrulanamayan söylentileri seçmezsin. "
+        "Sen bir YouTube Shorts kanalının haber editörüsün. Her fikir, listedeki TEK bir haber makalesine dayanır; "
+        "makalede olmayan bir konu veya iddia uydurmazsın. Sadece kanalın nişine uyan, bugün ilgi gören ve özgün "
+        "yorum katılabilecek haberleri seçersin. Siyaset, trajedi, suç, çocuklara yönelik ve yetişkin içerik seçmezsin. "
         "Cevabın sadece JSON olur."
     )
+    istenen = adet + 2  # bazıları makaleyle uyuşmayıp elenebilir
     kullanici = f"""Kanal nişi: {k['nis']}
 Kanal dili: {k['dil']}
 
-Bugünkü trendler:
-{liste or '(trend listesi boş; nişte her zaman ilgi gören, zamansız bir konu öner)'}
+Bugünkü haber makaleleri (numaralı):
+{liste}
 
 Daha önce işlenen konular (tekrar etme):
 {gecmis or '(yok)'}
@@ -181,28 +196,40 @@ Daha önce işlenen konular (tekrar etme):
 Analistin notları (neyin tuttuğu):
 {analist_notlari(k['id'])}
 
-En iyi {adet} konuyu seç. JSON biçimi:
-{{"fikirler": [{{"konu": "kısa konu", "aci": "videonun özgün bakış açısı", "neden": "neden şimdi ilgi görür", "kaynaklar": ["link1", "link2"]}}]}}
+En iyi {istenen} haberi seç. "konu" makalenin asıl konusunu aynı anahtar kelimelerle özetler.
+JSON biçimi:
+{{"fikirler": [{{"makale_no": 3, "konu": "makalenin konusu", "aci": "videonun özgün bakış açısı", "neden": "neden şimdi ilgi görür"}}]}}
 
-ÖNEMLİ: "konu" ve "aci" alanlarını kanalın dilinde yaz: {DIL_ADI.get(k['dil'], k['dil'])}.
-Write "konu" and "aci" in {DIL_ADI.get(k['dil'], k['dil'])}."""
+ÖNEMLİ: "konu" ve "aci" alanlarını kanalın dilinde yaz: {dil_adi}.
+Write "konu" and "aci" in {dil_adi}. Every idea MUST use one makale_no from the list."""
     fikirler: list[dict[str, Any]] = []
     for deneme in range(2):
-        cevap = sor_json(sistem, kullanici, sicaklik=0.7)
+        cevap = sor_json(sistem, kullanici, sicaklik=0.6)
         fikirler = cevap.get("fikirler", []) if isinstance(cevap, dict) else []
-        fikirler = [f for f in fikirler if isinstance(f, dict) and f.get("konu")][:adet]
+        fikirler = [f for f in fikirler if isinstance(f, dict) and f.get("konu")][:istenen]
         if all(dil_uygun(f, k) for f in fikirler):
             break
         log.info("%s: fikirler kanal dilinde değil, yeniden isteniyor", k["id"])
-        kullanici += f"\n\nPrevious answer was in the wrong language. konu and aci MUST be in {DIL_ADI.get(k['dil'], k['dil'])}."
-    fikirler = gemini_beyin_firtinasi(fikirler, k, sistem, kullanici, adet)
-    # son çare: yine yanlış dildeyse konu/açı çevrilir
-    from .senarist import konuyu_cevir
-
+        kullanici += f"\n\nPrevious answer was in the wrong language. konu and aci MUST be in {dil_adi}."
+    fikirler = gemini_beyin_firtinasi(fikirler, k, sistem, kullanici, istenen)
     fikirler = [f if dil_uygun(f, k) else konuyu_cevir(f, k) for f in fikirler]
-    log.info("%s: %d fikir bulundu", k["id"], len(fikirler))
+
+    secilen: list[dict[str, Any]] = []
+    for f in fikirler:
+        try:
+            no = int(f.get("makale_no", 0)) - 1
+        except (TypeError, ValueError):
+            continue
+        if not 0 <= no < len(makale) or any(s["kaynaklar"] == [makale[no]["link"]] for s in secilen):
+            continue
+        bagli = kaynak.fikre_bagla(f, makale[no])
+        if bagli:
+            secilen.append(bagli)
+        if len(secilen) >= adet:
+            break
+    log.info("%s: %d fikir kaynak makaleye bağlandı (%d aday)", k["id"], len(secilen), len(fikirler))
     (VERI / "son_trendler").mkdir(exist_ok=True)
     (VERI / "son_trendler" / f"{k['id']}.json").write_text(
-        json.dumps({"ham": ham[:80], "secilen": fikirler}, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return fikirler
+        json.dumps({"makaleler": makale, "adaylar": fikirler, "secilen": secilen}, ensure_ascii=False, indent=2),
+        encoding="utf-8")
+    return secilen

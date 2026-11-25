@@ -9,6 +9,7 @@ from collections import Counter
 from typing import Any
 
 from ..cekirdek import Is, isler, gunluk_al
+from .. import kaynak
 from ..yapay_zeka import sor_json
 
 log = gunluk_al("senarist")
@@ -136,6 +137,14 @@ def gorsel_kelimeleri_ingilizce(kelimeler: list[str], dil: str = "en") -> list[s
 
 
 
+def aciklama_temizle(metin: str) -> str:
+    """Modelin açıklamaya koyduğu linkleri ve 'Source(s): ...' / 'Kaynak: ...' ifadelerini çıkarır."""
+    metin = _re.sub(r"https?://\S+", "", metin)
+    metin = _re.sub(r"(?im)^\s*(sources?|kaynaklar?)\s*:.*$", "", metin)
+    metin = _re.sub(r"(?i)\s*(sources?|kaynaklar?)\s*:\s*[^.\n]*\.?", "", metin)
+    return _re.sub(r"\n{3,}", "\n\n", metin).strip()
+
+
 def klip_basligi(model_basligi: str, yayinci: str, klip_adi: str) -> str:
     """Model başlığı zayıfsa (yayıncı adı dışında 3 kelimeden az) "Yayıncı: klip adı" kalıbını kullanır."""
     yayinci = yayinci.split("(")[0].strip()
@@ -245,6 +254,15 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
         "question or call to comment. Never invent facts, numbers or quotes; if unsure, say it is a claim or rumor. "
         "No clickbait lies. Respond with JSON only."
     )
+    kaynak_metni = kaynak.metin_oku(fikir)[:6000]
+    if kaynak_metni:
+        sistem += (
+            " STRICT SOURCE RULE: use ONLY facts found in the SOURCE ARTICLE given by the user. Do not add any number, "
+            "date, price, percentage, name, company, product or claim that is not written in the article. Your own "
+            "opinion is allowed only as one clearly marked opinion sentence (e.g. 'I think...'). If the article "
+            "describes a rumor, leak, report or unconfirmed claim, the narration must say so explicitly "
+            "('rumor', 'reportedly', 'unconfirmed')."
+        )
     dil_adi = DIL_ADI.get(k["dil"], k["dil"])
     kullanici = f"""OUTPUT LANGUAGE: {dil_adi}. The topic below may be written in another language; translate it.
 Every JSON text value (title, hook, narration, description, tags) MUST be in {dil_adi}.
@@ -256,7 +274,12 @@ Format for this video: {fmt}
 Hook style for this video: {kalip}
 Narration length: {k.get('kelime_araligi', [60, 120])[0]}-{k.get('kelime_araligi', [60, 120])[1]} words (about 25-45 seconds).
 Extra notes: {k.get('senarist_notu', '')}{klip_notu}
-
+{f'''
+SOURCE ARTICLE (the ONLY allowed facts; do not add anything that is not here):
+"""
+{kaynak_metni}
+"""
+''' if kaynak_metni else ''}
 JSON fields:
 - "baslik": title under 70 characters, include #shorts at the end
 - "kanca_metni": big on-screen hook text for the first 3 seconds, 3 to 6 words, punchy, in the hook style above, no hashtags, no emojis
@@ -283,9 +306,9 @@ JSON fields:
     if denetim is not None:
         is_.veri["gemini_denetim"] = denetim
     kaynak_satiri = "\n".join(fikir.get("kaynaklar", []))
-    aciklama = s["aciklama"].strip()
-    if kaynak_satiri and kaynak_satiri not in aciklama:
-        aciklama += "\n\n" + ("Kaynaklar" if k["dil"] == "tr" else "Sources") + ":\n" + kaynak_satiri
+    aciklama = aciklama_temizle(str(s.get("aciklama", "")))  # modelin yazdığı link/kaynak satırları atılır
+    if kaynak_satiri:  # yalnızca gerçekten kullanılan kaynak makale
+        aciklama += "\n\n" + ("Kaynak" if k["dil"] == "tr" else "Source") + ":\n" + kaynak_satiri
     if k.get("aciklama_eki"):
         aciklama += "\n\n" + k["aciklama_eki"]
     if mod == "izinli_klip" and fikir.get("kredi"):

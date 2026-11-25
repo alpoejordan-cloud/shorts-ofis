@@ -12,3 +12,5 @@ opencv-python-headless>=4.9,<5  # kampanya kliplerinde yüz kamerası tespiti (5
 kokoro-onnx>=0.4               # Kokoro-82M: en kaliteli açık kaynak İngilizce ses (MIT + Apache 2.0)
 yt-dlp>=2025.1               # kampanyanın izin verdiği yayın kliplerini indirmek için
 google-genai>=1.0             # isteğe bağlı ikinci yapay zeka (Gemini ücretsiz katman) denetçi olarak
+trafilatura>=1.8              # kaynak haber metni (Apache-2.0); senarist yalnızca bu metinle yazar
+feedparser>=6.0               # haber RSS akışları (BSD)

@@ -55,6 +55,6 @@ Kanallar bağlanana kadar her kanal için en fazla 3 video hazırda bekler; bağ
 - YouTube, şablonla seri üretilmiş ve birbirine çok benzeyen içeriğe para ödemiyor (“özgün olmayan içerik”).
   Bunu azaltmak için her hikaye özgün, temalar/mekanlar/karakterler döner ve hikayeler insan yazımına yakın
   olsun diye Gemini ile cilalanır. Yine de kanal para kazanma başvurusunda incelenecektir.
-- Türkçe için ücretsiz Piper'da yalnız 3 erkek ses var; karakterler bu seslerin inceltilmiş hâlidir.
+- Türkçe için resmi Piper deposunda tek ses var (tr_TR-dfki-medium); anlatıcı ve karakterler bu sesin farklı perde ve hızlarıdır.
 - Önizleme: `python -m ofis cocuk-ornek cocuk_tr` (karakter tablosu, `veri/raporlar/`).
 - Karakterleri değiştirmek: `config/kanallar.yaml` > `karakterler` (tür, renk, aksesuar, ses, perde, kişilik).

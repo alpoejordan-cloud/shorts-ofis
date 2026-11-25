@@ -26,6 +26,11 @@ IDDIA_SAYI = re.compile(r"(?:%\s?\d[\d.,]*|\d[\d.,]*\s?(?:%|percent|yüzde|\$|do
                         r"billion|milyon|milyar|bin)|\$\s?\d[\d.,]*|yüzde\s?\d[\d.,]*)", re.I)
 
 
+# modelin senaryoya sızdırdığı yapı etiketleri ("Why this matters:", "One honest opinion:")
+SAHNE_ETIKETI = re.compile(r"(?:^|[.!?]\s+)((?:why this matters|one honest opinion|hook|intro|outro|cta|"
+                           r"neden önemli|kanca|giriş|kapanış)\s*:)", re.I)
+
+
 def klasor(is_: Is) -> Path:
     return VERI / "cikti" / is_.kanal / is_.id
 
@@ -116,6 +121,14 @@ def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
     if denetim.get("uydurma_suphesi"):
         sorunlar.append("uydurma şüphesi (Gemini): " + "; ".join(denetim["uydurma_suphesi"][:3]))
     if v.get("mod") != "izinli_klip":
+        # seslendirmeli videoda gerçek kontrol ikinci yapay zekadadır: Gemini onayı yoksa otomatik yayın yok
+        if not denetim:
+            sorunlar.append("Gemini denetimi yok (anahtar yok ya da kota doldu): uydurma iddia kontrol edilemedi")
+        elif not denetim.get("onay"):
+            sorunlar.append("Gemini onaylamadı: " + "; ".join(denetim.get("sorunlar", [])[:3]))
+        etiket = SAHNE_ETIKETI.findall(str(v.get("senaryo", "")))
+        if etiket:
+            sorunlar.append("seslendirmede başlık etiketi okunuyor: " + ", ".join(etiket[:3]))
         supheli = dogrulanmamis_sayilar(is_)
         if supheli:
             sorunlar.append("kaynakta geçmeyen sayı/iddia: " + ", ".join(supheli[:4]))

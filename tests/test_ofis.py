@@ -461,3 +461,18 @@ def test_pasif_yayinci_klibi_secilmez(monkeypatch):
     monkeypatch.setattr(gorsel, "yaml_oku", lambda ad: {"izinli_yayincilar": [
         {"ad": "A", "izin_belgesi": "u", "klasor": "k", "aktif": False}, {"ad": "B", "izin_belgesi": "u", "klasor": "k"}]})
     assert [y["ad"] for y in gorsel.izinli_yayincilar()] == ["B"]
+
+
+def test_kalite_gemini_onayi_ve_etiket(tmp_path, monkeypatch):
+    from ofis import kalite
+    monkeypatch.setattr(kalite, "klasor", lambda is_: tmp_path)
+    (tmp_path / "video.mp4").write_bytes(b"x")
+    monkeypatch.setattr(kalite, "_ffprobe", lambda y: {"streams": [{"codec_type": "audio"}], "format": {"duration": "30"}})
+    monkeypatch.setattr(kalite, "ses_seviyesi", lambda y: -14.0)
+    (tmp_path / "altyazi.ass").write_text("Dialogue:\nDialogue:\nDialogue:\n", encoding="utf-8")
+    v = {"mod": "normal", "baslik": "This is the new phone you want", "kanca_metni": "New phone",
+         "senaryo": "This is why the phone is fast. Why this matters: you and the battery."}
+    s = kalite.kontrol(cekirdek.Is(kanal="teknoloji_en", veri=v), {"dil": "en"})
+    assert any("Gemini denetimi yok" in x for x in s) and any("etiketi" in x for x in s)
+    v2 = {**v, "senaryo": "This is why the phone is fast and you want it.", "gemini_denetim": {"onay": True}}
+    assert kalite.kontrol(cekirdek.Is(kanal="teknoloji_en", veri=v2), {"dil": "en"}) == []

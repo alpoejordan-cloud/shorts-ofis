@@ -76,7 +76,9 @@ def sonraki_yayin_zamani(k: dict[str, Any], dolu: list[datetime], simdi: datetim
     dolu_set = {d.astimezone(bolge).replace(second=0, microsecond=0) for d in dolu}
     for gun in range(0, 60):
         tarih = (simdi + timedelta(days=gun)).date()
-        for s in sorted(saatler):
+        # gun_yayin_saatleri: o güne özel saatler (ör. erken paylaşım günü), normal saatlerin yerine geçer
+        gunun = (k.get("gun_yayin_saatleri") or {}).get(tarih.isoformat()) or saatler
+        for s in sorted(gunun):
             sa, dk = map(int, s.split(":"))
             aday = datetime(tarih.year, tarih.month, tarih.day, sa, dk, tzinfo=bolge)
             if aday > simdi + timedelta(minutes=15) and aday not in dolu_set:  # 18:30 çalışması 19:00 slotunu yakalasın

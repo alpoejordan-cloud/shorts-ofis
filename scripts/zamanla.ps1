@@ -1,5 +1,5 @@
 ﻿# Ofisi Windows Görev Zamanlayıcı'ya ekler (kullanıcı 18:00'e kadar işte: gündüz ağır iş yok):
-#  - Her akşam 18:30: üretim + kalite + zamanlanmış yükleme (o gecenin geç slotları: Tech 23:00, GTA 02:00)
+#  - Her akşam 18:00: üretim + kalite + zamanlanmış yükleme (o gecenin geç slotları: Tech 23:00, GTA 02:00)
 #  - Her gece 02:30: üretim + kalite + zamanlanmış yükleme (ertesi akşam slotları: Tech 17:00, GTA 19:00)
 #    Her çalışma önce yarım kalan işleri bitirir (telafi) ve hazır videoları yükler.
 #  - Pazartesi 18:15: haftalık rapor
@@ -25,7 +25,7 @@ foreach ($eski in "ShortsOfis - Sabah telafi", "ShortsOfis - Ogle yukleme", "Sho
         Write-Host "[kaldırıldı] $eski"
     }
 }
-Gorev "ShortsOfis - Aksam uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 18:30)
+Gorev "ShortsOfis - Aksam uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 18:00)
 Gorev "ShortsOfis - Gunluk uretim" "gunluk" (New-ScheduledTaskTrigger -Daily -At 02:30)
 Gorev "ShortsOfis - Haftalik rapor" "rapor" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 18:15)
 # Kampanya klipleri yayına girince 30 dk içinde Content Rewards'a gönderilmeli: 5 dakikada bir kontrol + bildirim

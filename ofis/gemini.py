@@ -18,8 +18,23 @@ _kapali_kadar = 0.0  # kota/erişim hatasından sonra bu saate kadar Gemini'ye h
 _istemci: Any = None
 
 
+# Ücretsiz katmanda denenen modeller (sırayla): biri 404/503 verirse sıradakine geçilir
+YEDEK_MODELLER = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+_calisan_model: str | None = None
+
+
 def model_adi() -> str:
-    return ortam("GEMINI_MODEL", "gemini-2.5-flash")
+    return _calisan_model or ortam("GEMINI_MODEL", "") or YEDEK_MODELLER[0]
+
+
+def _model_sirasi() -> list[str]:
+    ilk = model_adi()
+    return [ilk] + [m for m in YEDEK_MODELLER if m != ilk]
+
+
+def _model_yok_mu(e: Exception) -> bool:
+    m = str(e)
+    return "404" in m or "NOT_FOUND" in m or "503" in m or "UNAVAILABLE" in m
 
 
 def _sayac_yolu():
@@ -66,25 +81,32 @@ def _kapat(sn: float, neden: str) -> None:
 
 def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.3) -> Any | None:
     """Gemini'ye sorar, JSON döner. Her türlü hatada None (sistem durmaz)."""
-    global _istemci
+    global _istemci, _calisan_model
     if not hazir_mi():
         return None
     try:
         from google import genai
         from google.genai import types
 
-        if _istemci is None:
-            _istemci = genai.Client(api_key=ortam("GEMINI_API_ANAHTARI"))
-        _say()
-        cevap = _istemci.models.generate_content(
-            model=model_adi(),
-            contents=kullanici,
-            config=types.GenerateContentConfig(
-                system_instruction=sistem, temperature=sicaklik, response_mime_type="application/json"),
-        )
         from .yapay_zeka import json_ayikla
 
-        return json_ayikla(cevap.text or "")
+        if _istemci is None:
+            _istemci = genai.Client(api_key=ortam("GEMINI_API_ANAHTARI"))
+        ayar = types.GenerateContentConfig(system_instruction=sistem, temperature=sicaklik,
+                                           response_mime_type="application/json")
+        son_hata: Exception | None = None
+        for model in _model_sirasi():
+            try:
+                _say()
+                cevap = _istemci.models.generate_content(model=model, contents=kullanici, config=ayar)
+            except Exception as e:
+                if _model_yok_mu(e):  # model kaldırılmış ya da yoğun: sıradakini dene
+                    son_hata = e
+                    continue
+                raise
+            _calisan_model = model
+            return json_ayikla(cevap.text or "")
+        raise son_hata or RuntimeError("Gemini modeli yok")
     except Exception as e:  # kota, ağ, geçersiz anahtar, bozuk JSON
         metin = str(e).lower()
         if "429" in metin or "quota" in metin or "resource_exhausted" in metin:
@@ -228,14 +250,24 @@ def baglanti_testi() -> tuple[bool, str]:
     anahtar = ortam("GEMINI_API_ANAHTARI", "").strip()
     if not anahtar:
         return False, "İsteğe bağlı: .env'de GEMINI_API_ANAHTARI satırı yok (aistudio.google.com/apikey)"
-    if not anahtar.startswith("AIza") or len(anahtar) < 30:
-        return False, ".env'deki GEMINI_API_ANAHTARI bir API anahtarına benzemiyor (AIza... ile başlamalı, ~39 karakter)"
     try:
         from google import genai
 
-        cevap = genai.Client(api_key=anahtar).models.generate_content(model=model_adi(), contents="Say OK")
-        _say()
-        return True, f"Gemini bağlı ({model_adi()}), bugün {bugunku_istek()}/{gunluk_sinir()} istek"
+        global _calisan_model
+        istemci = genai.Client(api_key=anahtar)  # referans tutulmazsa istemci istekten önce kapanıyor
+        son: Exception | None = None
+        for model in _model_sirasi():
+            try:
+                istemci.models.generate_content(model=model, contents="Say OK")
+            except Exception as e:
+                if _model_yok_mu(e):
+                    son = e
+                    continue
+                raise
+            _say()
+            _calisan_model = model
+            return True, f"Gemini bağlı ({model}), bugün {bugunku_istek()}/{gunluk_sinir()} istek"
+        raise son or RuntimeError("model yok")
     except ImportError:
         return False, "google-genai paketi yok: pip install -r requirements.txt"
     except Exception as e:
@@ -247,5 +279,5 @@ def baglanti_testi() -> tuple[bool, str]:
         if "429" in m or "RESOURCE_EXHAUSTED" in m:
             return True, "Anahtar geçerli; şu an kota dolu (429), sistem Ollama ile devam eder"
         if "404" in m or "not found" in m.lower():
-            return False, f"Model bulunamadı ({model_adi()}): .env'de GEMINI_MODEL=gemini-2.5-flash-lite dene"
+            return False, f"Hiçbir model yanıt vermedi ({', '.join(_model_sirasi())}); daha sonra tekrar dene"
         return False, f"Gemini cevap vermedi: {m[:120]}"

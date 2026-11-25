@@ -612,3 +612,24 @@ def test_analist_oneri_uretir():
          "kaynak_ortalamalari": {}, "en_iyi": [{"konu": "GTA 6 sales"}]}
     notlar = analist.oneriler(o)
     assert any("'b'" in n for n in notlar) and any("GTA 6 sales" in n for n in notlar)
+
+
+def test_gune_ozel_yayin_saatleri():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    k = {"yayin_saatleri": ["17:00", "23:00"], "gun_yayin_saatleri": {"2026-11-25": ["15:00", "23:00"]}}
+    simdi = datetime(2026, 11, 25, 11, 0, tzinfo=ZoneInfo("Europe/Istanbul"))
+    ilk = sonraki_yayin_zamani(k, [], simdi)
+    assert ilk.hour == 15
+    assert sonraki_yayin_zamani(k, [ilk], simdi).hour == 23
+    assert sonraki_yayin_zamani(k, [ilk, ilk.replace(hour=23)], simdi).day == 26
+
+
+def test_uzun_kanca_kisaltilir_yarimsa_reddedilir():
+    from ofis.ajanlar import senarist
+    k = {"kelime_araligi": [1, 50]}
+    uzun = {"senaryo": "a b c", "baslik": "T", "gorsel_kelimeler": ["x"],
+            "kanca_metni": "GTA 6 hides a secret nobody found yet"}
+    assert senarist.dogrula(uzun, k) == []
+    yarim = {**uzun, "kanca_metni": "Everyone thinks GTA is"}
+    assert senarist.dogrula(yarim, k)

@@ -73,9 +73,10 @@ def kanca_duzelt(s: dict[str, Any]) -> str:
     kanca = str(s.get("kanca_metni") or "").replace("#shorts", "").strip()
     if not kanca:
         kanca = str(s.get("baslik", "")).replace("#shorts", "").strip()
+    kesildi = len(kanca.split()) > 6
     sozler = kanca.split()[:6]
-    # 6 kelimeye kesince "..., but" gibi yarım kalmasın: sondaki bağlaç/edat ve virgül atılır
-    while len(sozler) > 2 and (sozler[-1].lower().strip(".,!?…") in YARIM_SON or sozler[-2].endswith(",")):
+    # yalnızca 6 kelimeye KESİLDİYSE "..., but" gibi yarım kalan son atılır; kısa ama yarım kanca yeniden yazdırılır
+    while kesildi and len(sozler) > 2 and (sozler[-1].lower().strip(".,!?…") in YARIM_SON or sozler[-2].endswith(",")):
         sozler.pop()
     return " ".join(sozler).rstrip(",;:—-")
 
@@ -93,7 +94,7 @@ def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> lis
         sorunlar.append(f"senaryo {kelime} kelime, {alt}-{ust} olmalı")
     if not s.get("baslik") or len(s["baslik"]) > 95:
         sorunlar.append("başlık boş ya da 95 karakterden uzun")
-    if s.get("kanca_metni") and kanca_yarim_mi(str(s["kanca_metni"])):  # yoksa başlıktan türetilir
+    if s.get("kanca_metni") and kanca_yarim_mi(kanca_duzelt(s)):  # uzun kanca temiz kısaltılır; yarımsa yeniden
         sorunlar.append("kanca_metni must be a COMPLETE punchy phrase of 3-6 words, not cut off mid-sentence")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")

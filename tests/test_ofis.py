@@ -521,3 +521,13 @@ def test_trend_fikri_makaleye_baglar(monkeypatch):
     monkeypatch.setattr(trend, "isler", lambda **kw: [], raising=False)
     sonuc = trend.fikir_bul({"id": "zz_test", "dil": "en", "nis": "gaming"}, 1)
     assert len(sonuc) == 1 and sonuc[0]["kaynaklar"] == ["https://a/1"] and sonuc[0]["kaynak_metin"]
+
+
+def test_yarim_kanca_yakalanir(tmp_path, monkeypatch):
+    from ofis import kalite
+    monkeypatch.setattr(kalite, "klasor", lambda is_: tmp_path)
+    (tmp_path / "video.mp4").write_bytes(b"x")
+    monkeypatch.setattr(kalite, "_ffprobe", lambda y: {"streams": [{"codec_type": "audio"}], "format": {"duration": "30"}})
+    monkeypatch.setattr(kalite, "ses_seviyesi", lambda y: -14.0)
+    v = {"mod": "izinli_klip", "baslik": "This is the clip you want", "kanca_metni": "Everyone thinks it's a glitch, but"}
+    assert any("yarım" in x for x in kalite.kontrol(cekirdek.Is(kanal="gta_en", veri=v), {"dil": "en"}))

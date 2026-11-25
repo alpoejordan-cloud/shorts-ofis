@@ -92,6 +92,8 @@ def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
     kanca = str(v.get("kanca_metni", "")).strip()
     if not kanca or len(kanca.split()) > 9:
         sorunlar.append("kanca metni yok veya çok uzun")
+    elif kanca.split()[-1].lower().strip(".,!?…") in YARIM_SON:
+        sorunlar.append(f"kanca yarım kalmış: '{kanca}'")
 
     dil = k.get("dil", "en")
     # yayıncı klibinde senaryo yoktur; dil kontrolü başlık + açıklamada yapılır
@@ -124,6 +126,8 @@ SOYLENTI_KAYNAK = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed
                              r"sızıntı\w*|iddia\w*)\b", re.I)
 SOYLENTI_SENARYO = re.compile(r"\b(rumou?rs?|leak(?:s|ed)?|reportedly|unconfirmed|allegedly|according to|claims?|"
                               r"report(?:s|ed)?|söylenti\w*|sızıntı\w*|iddia\w*|habere göre|bildirildi)\b", re.I)
+YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "ama", "ve", "ile",
+             "için", "bu", "çünkü"}
 SERBEST_AD = {"i", "i'm", "i'd", "i'll", "i've", "ai", "shorts", "youtube", "comment", "comments", "follow"}
 
 

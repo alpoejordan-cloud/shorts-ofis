@@ -54,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("hatirlat")
     alt.add_parser("temizle")
     alt.add_parser("ozet")
+    alt.add_parser("havuz-kur")
     pn = alt.add_parser("panel")
     pn.add_argument("--port", type=int)
     pn.add_argument("--acma", action="store_true", help="tarayıcıyı otomatik açma")
@@ -104,6 +105,11 @@ def _calistir(a: argparse.Namespace) -> int:
     if a.komut == "temizle":
         from .temizlik import temizle
         print(temizle())
+        return 0
+    if a.komut == "havuz-kur":  # GTA resmi görsel havuzu (Rockstar resmi medya paketi)
+        from .resmi_havuz import kur
+
+        print(f"Resmi havuz: {len(kur()['ogeler'])} dosya, kaynaklar: gorseller/gta_resmi/KAYNAKLAR.txt")
         return 0
     if a.komut == "ozet":
         from .temizlik import gunluk_ozet

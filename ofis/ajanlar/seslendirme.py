@@ -177,7 +177,7 @@ def _temiz(metin: str) -> str:
 def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | None = None,
             kanca: str | None = None, toplam: float | None = None, dil: str = "en",
             acilis_notu: str | None = None, acilis_sure: float = 2.0, kapanis: str | None = None,
-            kanca_y: int | None = None) -> None:
+            kanca_y: int | None = None, etiketler: list[dict[str, Any]] | None = None) -> None:
     """Altyazı dosyası: kelime kelime renklenen alt yazı, ilk saniyelerde kanca metni,
     altta ilerleme çubuğu."""
     _DIL["dil"] = dil
@@ -201,6 +201,8 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         "80,80,300,1",
         "Style: Not,Arial,46,&H00FFFFFF,&H000000FF,&H40000000,&H00000000,-1,0,0,0,100,100,0,0,3,14,0,8,"
         "90,90,120,1",
+        "Style: Etiket,Arial Black,40,&H00FFFFFF,&H000000FF,&H00000000,&H9E000000,-1,0,0,0,100,100,2,0,3,10,0,7,"
+        "60,60,150,1",
         "Style: Cubuk,Arial,10,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1",
         "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
@@ -241,6 +243,13 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         satirlar.append(f"Dialogue: 2,{_ass_zaman(max(toplam - 3.0, 0))},{_ass_zaman(toplam)},Kanca,,0,0,0,,"
                         f"{{\\an5\\pos(540,760)\\fad(200,0)\\t(0,160,\\fscx110\\fscy110)\\t(160,320,\\fscx100\\fscy100)}}"
                         f"{temiz_k}")
+    for e in etiketler or []:  # sahne etiketi (ör. "PLACE: VICE CITY"): sol üstte, kancayla çakışmasın
+        bas = max(float(e["bas"]), kanca_sure if kanca else 0.0)
+        if float(e["son"]) - bas < 0.6:
+            continue
+        temiz_e = str(e["metin"]).replace("{", "(").replace("}", ")").replace("\\", "/")
+        satirlar.append(f"Dialogue: 2,{_ass_zaman(bas)},{_ass_zaman(float(e['son']))},Etiket,,0,0,0,,"
+                        f"{{\\fad(120,120)\\c{vurgu}}}{temiz_e}")
     if acilis_notu:  # kampanyanın zorunlu bilgilendirmesi: ilk saniyelerde, en üstte, büyük harfe çevrilmeden
         temiz = acilis_notu.replace("{", "(").replace("}", ")").replace("\\", "/")
         satirlar.append(f"Dialogue: 3,0:00:00.00,{_ass_zaman(acilis_sure)},Not,,0,0,0,,{{\\fad(0,200)}}{temiz}")

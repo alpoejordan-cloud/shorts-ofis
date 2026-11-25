@@ -147,7 +147,7 @@ def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
     monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="gta_en", veri={"gorsel_kelimeler": ["a", "b", "c", "d", "e"]})
-    gorsel.topla(i, cekirdek.kanal("gta_en"))
+    gorsel.topla(i, {**cekirdek.kanal("gta_en"), "resmi_havuz": False})  # yedek yol (havuz kapalı)
     assert [s["tur"] for s in i.veri["sahneler"]] == ["resim"] * 5
     assert i.veri["yapay_icerik"] is True
 
@@ -728,3 +728,44 @@ def test_seo_baslik_cumleyi_bozmaz():
     k = {"id": "gta_en"}
     assert seo.baslik("Did GTA 6 Break 39M Players? #shorts", k) == "Did GTA 6 Break 39M Players? #shorts"
     assert seo.baslik("Why Palworld went quiet during GTA 6 #shorts", k).startswith("GTA 6: Why Palworld")
+
+
+def _sahte_havuz(tmp_path):
+    import json
+    ogeler = [{"yol": f"g/{e}_{n}.jpg", "tur": "resim", "kategori": kat, "etiket": e, "kaynak": "u"}
+              for kat, e in [("Places", "Vice City"), ("People", "Boobie Ike"), ("People", "Jason and Lucia"),
+                             ("Places", "Leonida Keys")] for n in range(3)]
+    ogeler.append({"yol": "g/Boobie_Ike_Video_Clip.mp4", "tur": "video", "kategori": "Video", "etiket": "Boobie Ike", "kaynak": "u"})
+    (tmp_path / "havuz.json").write_text(json.dumps({"ogeler": ogeler}), encoding="utf-8")
+
+
+def test_resmi_havuz_eslesen_gorseller_ve_sessiz_kisa_klip(tmp_path):
+    from ofis import resmi_havuz
+    _sahte_havuz(tmp_path)
+    s = resmi_havuz.sahneler_sec("Boobie built an empire in the Leonida Keys", 5, klasor=tmp_path, tohum=1)
+    etiket = [x["etiket"] for x in s]
+    assert "CHARACTER: BOOBIE IKE" in etiket and "PLACE: LEONIDA KEYS" in etiket
+    klip = [x for x in s if x["tur"] == "video"]
+    assert len(klip) == 1 and klip[0]["en_uzun"] <= 3
+
+
+def test_sahne_etiketleri_zamanlari():
+    from ofis.ajanlar import kurgu
+    plan = [{"sahne": {"etiket": "PLACE: VICE CITY"}, "sure": 3.3}, {"sahne": {}, "sure": 3.3},
+            {"sahne": {"etiket": "CHARACTER: LUCIA"}, "sure": 3.0}]
+    e = kurgu.sahne_etiketleri(plan)
+    assert [x["metin"] for x in e] == ["PLACE: VICE CITY", "CHARACTER: LUCIA"]
+    assert e[1]["bas"] > 6.0 and e[0]["son"] == 3.0
+
+
+def test_resmi_fikir_kaynakla_gelir(tmp_path, monkeypatch):
+    from ofis import kaynak, resmi_havuz
+    _sahte_havuz(tmp_path)
+    monkeypatch.setattr(resmi_havuz, "KLASOR", tmp_path)
+    monkeypatch.setattr(resmi_havuz, "havuz", lambda klasor=tmp_path: __import__("json").loads((tmp_path / "havuz.json").read_text(encoding="utf-8"))["ogeler"])
+    monkeypatch.setattr(kaynak, "metin_al", lambda url: "Jason grew up around grifters and crooks.")
+    monkeypatch.setattr(kaynak, "metin_yolu", lambda link: tmp_path / "resmi.txt")
+    monkeypatch.setattr(cekirdek, "isler", lambda *a, **kw: [])
+    f = resmi_havuz.fikir_uret("gta_en")
+    assert f["resmi_konu"] == "Jason Duval" and f["kaynaklar"] == [resmi_havuz.RESMI_METIN]
+    assert "Leonida Keys" in kaynak.metin_oku(f) or "Leonida Keys" in (tmp_path / "resmi.txt").read_text(encoding="utf-8")

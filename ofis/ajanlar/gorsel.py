@@ -281,7 +281,18 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
     gorsel_klasoru.mkdir(exist_ok=True)
 
     oyun_sahneleri = oyun_kaydi_sahneleri(k, is_.id)
-    if oyun_sahneleri and is_.veri.get("mod") != "izinli_klip":
+    resmi = []
+    if k.get("resmi_havuz") and is_.veri.get("mod") != "izinli_klip":
+        from .. import resmi_havuz
+
+        metin = " ".join(str(is_.veri.get(a, "")) for a in ("konu", "senaryo", "baslik", "kanca_metni"))
+        resmi = resmi_havuz.sahneler_sec(metin, int(k.get("hedef_gorsel", 7)), tohum=hash(is_.id) & 0xFFFF)
+    if resmi:
+        # varsayılan: yayıncının resmi medyası (Openverse/desen yalnızca havuz boşsa yedek)
+        sahneler.extend(resmi)
+        lisans.append("Görseller: Rockstar Games resmi medya (rockstargames.com/VI/media). "
+                      "Grand Theft Auto VI © Rockstar Games / Take-Two Interactive.")
+    elif oyun_sahneleri and is_.veri.get("mod") != "izinli_klip":
         sahneler.extend(oyun_sahneleri)
         lisans.append("Oyun görüntüsü: kanal sahibinin kendi oyun kaydı")
     elif is_.veri.get("mod") == "izinli_klip":

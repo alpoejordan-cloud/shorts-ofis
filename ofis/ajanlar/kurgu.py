@@ -254,6 +254,17 @@ def gecis_anlari(plan: list[dict[str, Any]]) -> list[float]:
     return anlar
 
 
+def sahne_etiketleri(plan: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Her sahnenin ekranda göründüğü zaman aralığı + etiketi (resmi havuz: yer/karakter adı)."""
+    sonuc, bas = [], 0.0
+    for p in plan:
+        son = bas + p["sure"] - GECIS
+        if p["sahne"].get("etiket"):
+            sonuc.append({"bas": round(bas + 0.15, 2), "son": round(son, 2), "metin": str(p["sahne"]["etiket"])})
+        bas = son
+    return sonuc
+
+
 def whoosh_komutu(anlar: list[float], toplam: float, cikis: str = "gecis.wav") -> list[str]:
     """Her kesmede kısa, yumuşak bir hava sesi (internetsiz üretilir)."""
     n = len(anlar)
@@ -363,7 +374,8 @@ def altyazi_yenile(is_: Is, k: dict[str, Any], toplam: float) -> None:
                         k.get("altyazi"), kanca=kanca, toplam=toplam, dil=k.get("dil", "en"),
                         acilis_notu=is_.veri.get("acilis_notu") or None,
                         kapanis=is_.veri.get("kapanis_notu") or None,
-                        kanca_y=UST_YUKSEKLIK if is_.veri.get("yayinci_sesi") else None)
+                        kanca_y=UST_YUKSEKLIK if is_.veri.get("yayinci_sesi") else None,
+                        etiketler=is_.veri.get("sahne_etiketleri") or None)
 
 
 def kurgula(is_: Is, k: dict[str, Any]) -> None:
@@ -403,6 +415,7 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
     if anlar and k.get("gecis_sesi", True):
         calistir(whoosh_komutu(anlar, sure), klasor)
         gecis_sesi = "gecis.wav"
+    is_.veri["sahne_etiketleri"] = sahne_etiketleri(plan)
     altyazi_yenile(is_, k, sure)
     # yayıncı klibinde ses aynen korunur (kampanya kuralı): müzik eklenmez
     muzik = None if is_.veri.get("yayinci_sesi") else muzik_sec(k)

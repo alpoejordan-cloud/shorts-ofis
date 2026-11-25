@@ -147,6 +147,18 @@ def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
             i.kaydet()
             yeni.append(i)
 
+    # Resmi kaynaklı "en önemli yerler/karakterler" formatı (kaynak: yayıncının kendi sitesi)
+    if k.get("resmi_havuz") and float(k.get("resmi_konu_orani", 0)) > 0:
+        from . import resmi_havuz
+
+        for _ in range(sum(random.random() < float(k["resmi_konu_orani"]) for _ in range(adet - len(yeni)))):
+            fikir = resmi_havuz.fikir_uret(k["id"])
+            if not fikir:
+                break
+            i = Is(kanal=k["id"], veri={"mod": "normal", **fikir})
+            i.kaydet()
+            yeni.append(i)
+
     kalan = adet - len(yeni)
     if kalan > 0:
         with calisiyor("trend", f"{kalan} video fikri arıyor", kanal=k["id"]):

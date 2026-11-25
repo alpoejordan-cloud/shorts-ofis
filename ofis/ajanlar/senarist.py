@@ -317,7 +317,7 @@ def yaz(is_: Is, k: dict[str, Any]) -> None:
         return klip_metni_yaz(is_, k)
     fikir = konuyu_cevir(is_.veri, k)
     mod = fikir.get("mod", "normal")
-    fmt = format_sec(k, mod)
+    fmt = fikir.get("format") or format_sec(k, mod)  # resmi konu kendi formatını getirir
     kalip = random.choice(KANCA_KALIPLARI)
     is_.veri["kanca_kalibi"] = kalip  # analist hangi kanca türünün tuttuğunu öğrensin
     klip_notu = ""

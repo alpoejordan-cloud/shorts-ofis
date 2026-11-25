@@ -584,6 +584,7 @@ def test_pencere_utc_kaydini_yerel_saate_cevirir():
 def test_gemini_sayac_ve_sinir(monkeypatch, tmp_path):
     from ofis import gemini
     monkeypatch.setattr(gemini, "_sayac_yolu", lambda: tmp_path / "s.json")
+    monkeypatch.setattr(gemini, "_kapali_kadar", 0.0)  # başka testin bıraktığı geçici kapatma etkilemesin
     monkeypatch.setenv("GEMINI_API_ANAHTARI", "x")
     monkeypatch.setenv("GEMINI_GUNLUK_SINIR", "2")
     assert gemini.hazir_mi()

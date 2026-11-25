@@ -24,6 +24,7 @@ izinli_yayincilar:
   # Content Rewards kampanyaları (2026-11-24 katılındı). İzin belgesi = kampanya sayfası.
   - ad: "Dasgasd3m (Dom)"
     kanal_url: "https://kick.com/dasgasd3m"
+    agirlik: 3                  # öncelikli kampanya
     izin_tarihi: "2026-11-24"
     izin_belgesi: "https://contentrewards.com/c/campaigns/051002dd-5c46-43d0-a446-43f2957ba3a9"
     kurallar: >-
@@ -43,6 +44,7 @@ izinli_yayincilar:
     zorunlu_etiketler: ["#dasgasdom3", "#GTA6"]
 
   - ad: "Bobby VanRiper"
+    aktif: false                # 2026-11-25 durduruldu: ödeme Discord şartlı, Discord Türkiye'de erişime kapalı
     kanal_url: "https://www.twitch.tv/bobby_vanriper"
     izin_tarihi: "2026-11-24"
     izin_belgesi: "https://contentrewards.com/c/campaigns/f583b069-ced7-49e5-9ed3-2d3a13d6df0c"

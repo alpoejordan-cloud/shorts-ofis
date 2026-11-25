@@ -25,6 +25,7 @@ Her iş `veri/isler/<id>.json` dosyasında durur. Bir adım hata verirse müdür
 | Yüz kamerası | OpenCV Haar (4.x) | Hafif, kurulumu sorunsuz; mediapipe gerekmedi | Tam ekran oyun görüntüsü |
 | Sahne tespiti | Gerek yok | Klipler zaten kısa (≤60 sn); PySceneDetect yük getirirdi | — |
 | Görsel | Openverse / Wikimedia (CC, atıflı) | Lisanslı ve ücretsiz | Desenli arka plan |
+| İkinci yapay zeka (denetçi) | **Gemini** ücretsiz katman (`google-genai`, gemini-2.5-flash) | Ollama yazar, Gemini eleştirir (kanca, SEO, dil, uydurma iddia), Ollama düzeltir; en fazla 2 tur. Fikirlerde de puanlar, zayıfları değiştirtir | Anahtar yoksa ya da kota dolarsa sessizce yalnızca Ollama |
 
 ## Ölçülen süreler (bu bilgisayar, 16 GB RAM, CPU)
 
@@ -54,6 +55,22 @@ qwen3:8b'de senaryo adımı ~20–40 sn uzar.
 | **Toplam** | **5** (1 yükleme acil kampanya klibine ayrılır) | |
 
 Kota artırılırsa (Google'dan kota başvurusu ya da ikinci bir proje) `gunluk_video` değerleri artırılabilir.
+
+## Otomatik onay ve kalite kontrolü
+
+`config/kanallar.yaml` içinde bir kanalda `otomatik_onay: true` olursa, kalite kontrolünden (`ofis/kalite.py`) geçen video onay
+beklemeden onaylanır. Ardından kanalın yayın saatine `publishAt` ile zamanlanır (önce gizli yüklenir, saatinde herkese açılır).
+Bir madde bile geçmezse video onay masasına düşer ve kartta nedeni yazar. Kontrol maddeleri:
+
+- video ve ses akışı var, süre 12–60 sn
+- altyazı var (en az 3 satır)
+- ses seviyesi -17 ile -11 LUFS arası (hedef -14)
+- başlık ve kanca dolu, başlık ve senaryo kanal dilinde
+- Gemini'nin uydurma iddia şüphesi yok
+- senaryodaki yüzde/para/büyük sayılar konu ve kaynaklarda geçiyor
+
+Kampanya klipleri her zaman masaya düşer. Gönderim süresi (30 dk) yayın anında başladığı için yayını sen başlatırsın (`yayinla`).
+Bobby VanRiper kampanyası durduruldu (`aktif: false`). Dom'un ağırlığı 3. GTA'da videoların ~%30'u klip, gerisi haber/yorum.
 
 ## Zamanlayıcı (Windows Görev Zamanlayıcı)
 

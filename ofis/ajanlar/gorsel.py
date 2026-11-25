@@ -26,7 +26,8 @@ RESIM_UZANTI = {".jpg", ".jpeg", ".png", ".webp"}
 
 def izinli_yayincilar() -> list[dict[str, Any]]:
     liste = yaml_oku("izinler.yaml").get("izinli_yayincilar", []) or []
-    return [y for y in liste if str(y.get("izin_belgesi", "")).strip() and y.get("klasor")]
+    return [y for y in liste if str(y.get("izin_belgesi", "")).strip() and y.get("klasor")
+            and y.get("aktif", True) is not False]
 
 
 def kullanilmis_klipler() -> set[str]:
@@ -63,7 +64,11 @@ def klip_sec(k: dict[str, Any]) -> dict[str, Any] | None:
                     "kapanis_notu": str(y.get("kapanis_notu") or "").strip(),
                     "zorunlu_etiketler": [str(e) for e in (y.get("zorunlu_etiketler") or [])],
                 })
-    return random.choice(adaylar) if adaylar else None
+    if not adaylar:
+        return None
+    # agirlik: izinler.yaml'da yayıncı başına öncelik (varsayılan 1)
+    agirlik = {y["ad"]: float(y.get("agirlik", 1) or 1) for y in izinli_yayincilar()}
+    return random.choices(adaylar, weights=[agirlik.get(a["yayinci"], 1.0) for a in adaylar])[0]
 
 
 # ---- Pexels ----

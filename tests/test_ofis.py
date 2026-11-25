@@ -274,7 +274,7 @@ def test_acilis_notu_ilk_iki_saniyede(tmp_path):
 
 def test_kampanya_yayincilari_izin_belgesiyle_gelir():
     adlar = {y["ad"]: y for y in gorsel.izinli_yayincilar()}
-    assert "Bobby VanRiper" in adlar and "Dasgasd3m (Dom)" in adlar
+    assert "Dasgasd3m (Dom)" in adlar and "Bobby VanRiper" not in adlar  # Bobby durduruldu
     assert all(y["izin_belgesi"].startswith("https://contentrewards.com/") for y in adlar.values())
     assert all(y.get("yayinci_sesi") for y in adlar.values())
 
@@ -422,3 +422,42 @@ def test_gecici_hatada_hemen_yeniden_dener(monkeypatch, tmp_path):
     i = cekirdek.Is(kanal="teknoloji_en", veri={})
     mudur.is_ilerlet(i)
     assert sayac["n"] == 2 and i.durum == "onay_bekliyor" and i.deneme == 0
+
+
+def test_kalite_dil_ve_sayi():
+    from ofis import kalite
+    assert kalite.dil_tutuyor_mu("This is why the new phone is fast and you want it", "en")
+    assert not kalite.dil_tutuyor_mu("Bu telefon neden bu kadar hızlı ve çok pahalı bir şey değil", "en")
+    assert kalite.dil_tutuyor_mu("Bu telefon neden bu kadar hızlı ve çok pahalı", "tr")
+    i = cekirdek.Is(kanal="finans_tr", veri={"konu": "memur zammı yüzde 11", "senaryo": "Zam yüzde 11 olacak, enflasyon %45 diyorlar."})
+    assert kalite.dogrulanmamis_sayilar(i) == ["%45"]
+
+
+def test_otomatik_onay_kapaliysa_ve_kampanyada_masaya(monkeypatch):
+    from ofis import mudur
+    i = cekirdek.Is(kanal="gta_en", veri={"kampanya": "https://x"})
+    assert mudur.otomatik_onay_uygun(i, {"otomatik_onay": False}) is False
+    assert mudur.otomatik_onay_uygun(i, {"otomatik_onay": True}) is False
+    assert "kampanya" in i.veri["kalite_sorunlari"][0]
+    from ofis import kalite
+    monkeypatch.setattr(kalite, "kontrol", lambda is_, k: [])
+    j = cekirdek.Is(kanal="teknoloji_en", veri={})
+    assert mudur.otomatik_onay_uygun(j, {"otomatik_onay": True}) is True
+    monkeypatch.setattr(kalite, "kontrol", lambda is_, k: ["ses seviyesi"])
+    assert mudur.otomatik_onay_uygun(j, {"otomatik_onay": True}) is False
+
+
+def test_gemini_anahtarsiz_sessizce_none(monkeypatch):
+    from ofis import gemini
+    from ofis.ajanlar import senarist
+    monkeypatch.setenv("GEMINI_API_ANAHTARI", "")
+    assert gemini.hazir_mi() is False and gemini.sor_json("a", "b") is None
+    s = {"baslik": "x"}
+    assert senarist.gemini_ile_iyilestir(s, {}, {}, "", "") == (s, None)
+
+
+def test_pasif_yayinci_klibi_secilmez(monkeypatch):
+    from ofis.ajanlar import gorsel
+    monkeypatch.setattr(gorsel, "yaml_oku", lambda ad: {"izinli_yayincilar": [
+        {"ad": "A", "izin_belgesi": "u", "klasor": "k", "aktif": False}, {"ad": "B", "izin_belgesi": "u", "klasor": "k"}]})
+    assert [y["ad"] for y in gorsel.izinli_yayincilar()] == ["B"]

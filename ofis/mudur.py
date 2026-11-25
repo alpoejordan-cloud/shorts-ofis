@@ -2,6 +2,7 @@
 hata olursa tekrar dener, takılan işleri kaldığı yerden sürdürür."""
 from __future__ import annotations
 
+import random
 import time
 import traceback
 from datetime import datetime
@@ -23,12 +24,32 @@ ADIMLAR: dict[str, tuple[Callable[[Is, dict[str, Any]], None], str]] = {
 }
 
 
+def otomatik_onay_uygun(is_: Is, k: dict[str, Any]) -> bool:
+    """Kanal otomatik onaylıysa kalite kontrolünü çalıştırır; geçmeyen video onay masasına düşer."""
+    if not k.get("otomatik_onay"):
+        return False
+    if is_.veri.get("kampanya"):
+        # kampanya klibi: yayına girdiği an 30 dk gönderim süresi başlar; zamanı kullanıcı seçer (masadan "hemen yayınla")
+        is_.veri["kalite_sorunlari"] = ["kampanya klibi: 30 dk gönderim kuralı için yayın zamanını sen seç"]
+        return False
+    from .kalite import kontrol
+
+    try:
+        sorunlar = kontrol(is_, k)
+    except Exception as e:  # kontrol çalışamazsa güvenli taraf: masaya
+        sorunlar = [f"kalite kontrolü çalışmadı: {e}"]
+    is_.veri["kalite_sorunlari"] = sorunlar
+    if sorunlar:
+        log.warning("%s: kalite kontrolünden geçmedi, onay masasına: %s", is_.id, "; ".join(sorunlar))
+    return not sorunlar
+
+
 def is_ilerlet(is_: Is) -> None:
     """Bir işi bitene, onaya düşene veya hata verene kadar ilerletir."""
     k = kanal(is_.kanal)
     while is_.durum in ADIMLAR or is_.durum == "video":
         if is_.durum == "video":
-            is_.durum = "onaylandi" if k.get("otomatik_onay") else "onay_bekliyor"
+            is_.durum = "onaylandi" if otomatik_onay_uygun(is_, k) else "onay_bekliyor"
             is_.kaydet()
             log.info("%s: %s", is_.id, "otomatik onaylandı" if is_.durum == "onaylandi" else "onay bekliyor")
             return
@@ -78,7 +99,7 @@ def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
     # İzinli yayıncı klibi varsa, kanalın ayarındaki orana göre bir kısmı klip yorumu olur
     if "izinli_klip" in k.get("kaynak_modlari", []):
         oran = float(k.get("klip_orani", 0.5))
-        for _ in range(round(adet * oran)):
+        for _ in range(sum(random.random() < oran for _ in range(adet))):  # her slot oran olasılıkla klip
             klip = gorsel.klip_sec(k)
             if not klip:
                 log.info("%s: kullanılabilir izinli klip yok, haber/yorum ile devam", k["id"])

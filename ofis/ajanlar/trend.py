@@ -116,6 +116,46 @@ def dil_uygun(fikir: dict[str, Any], k: dict[str, Any]) -> bool:
     return sum(c in TR_HARF for c in metin) <= 1
 
 
+
+def gemini_beyin_firtinasi(fikirler: list[dict[str, Any]], k: dict[str, Any], sistem: str, kullanici: str,
+                           adet: int, tur: int = 2) -> list[dict[str, Any]]:
+    """Ollama fikir önerdi; Gemini puanlar/eleştirir, Ollama zayıfları değiştirir (en fazla 2 tur)."""
+    from .. import gemini
+
+    for n in range(tur):
+        if not fikirler:
+            break
+        degerler = gemini.fikirleri_elestir(fikirler, k)
+        if not degerler:
+            break
+        zayif = []
+        for d in degerler:
+            try:
+                no, puan = int(d.get("no", 0)) - 1, float(d.get("puan", 10))
+            except (TypeError, ValueError):
+                continue
+            if not 0 <= no < len(fikirler):
+                continue
+            fikirler[no]["gemini_puan"] = puan
+            if d.get("daha_iyi_aci") and puan >= 6:
+                fikirler[no]["aci"] = str(d["daha_iyi_aci"])
+            if puan < 6:
+                zayif.append(f"#{no + 1} {fikirler[no].get('konu')}: {d.get('elestiri', '')}")
+        if not zayif:
+            break
+        log.info("%s: Gemini zayıf buldu (tur %d): %s", k["id"], n + 1, " | ".join(zayif))
+        try:
+            cevap = sor_json(sistem, kullanici + "\n\nAn editor rejected these ideas:\n" + "\n".join(zayif)
+                             + f"\nReturn {adet} ideas again in the same JSON, replacing the rejected ones with "
+                             "better topics from the trend list. Keep the good ones.", sicaklik=0.7)
+        except Exception:
+            break
+        yeni = cevap.get("fikirler", []) if isinstance(cevap, dict) else []
+        yeni = [f for f in yeni if isinstance(f, dict) and f.get("konu")][:adet]
+        if yeni:
+            fikirler = yeni
+    return fikirler
+
 def fikir_bul(k: dict[str, Any], adet: int) -> list[dict[str, Any]]:
     """Kanal için `adet` tane video fikri döner."""
     ham = ham_trendler(k)
@@ -155,6 +195,7 @@ Write "konu" and "aci" in {DIL_ADI.get(k['dil'], k['dil'])}."""
             break
         log.info("%s: fikirler kanal dilinde değil, yeniden isteniyor", k["id"])
         kullanici += f"\n\nPrevious answer was in the wrong language. konu and aci MUST be in {DIL_ADI.get(k['dil'], k['dil'])}."
+    fikirler = gemini_beyin_firtinasi(fikirler, k, sistem, kullanici, adet)
     # son çare: yine yanlış dildeyse konu/açı çevrilir
     from .senarist import konuyu_cevir
 

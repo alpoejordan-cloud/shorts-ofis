@@ -75,6 +75,7 @@ def sayfa() -> str:
     <small>{e(i.kanal)} · {e(v.get('format', ''))} · {v.get('sure', '?')} sn</small>
     <h2>{e(v.get('baslik', ''))}</h2>
     <p>{e(v.get('senaryo', ''))}</p>
+    {('<p class="uyari">Kalite kontrolü notu: ' + e('; '.join(v['kalite_sorunlari'])) + '</p>') if v.get('kalite_sorunlari') else ''}
     {('<p class="uyari">Kampanya klibi: yayına girince 30 dk içinde Content Rewards' + "'" + 'a gönderilmeli. '
       'Bilgisayar açık olsun, bildirim gelecek.</p>') if v.get('kampanya') else ''}
     <details><summary>Açıklama ve lisanslar</summary><pre>{e(v.get('aciklama', ''))}

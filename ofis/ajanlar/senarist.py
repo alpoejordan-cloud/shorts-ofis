@@ -194,6 +194,37 @@ JSON fields:
     log.info("%s: klip metni hazır: %s", is_.id, is_.veri["baslik"])
 
 
+
+def gemini_ile_iyilestir(s: dict[str, Any], k: dict[str, Any], fikir: dict[str, Any], sistem: str,
+                         kullanici: str, is_id: str = "", tur: int = 2) -> tuple[dict[str, Any], dict | None]:
+    """Ollama yazdı; Gemini eleştirir, Ollama düzeltir (en fazla `tur` kez). Gemini yoksa s aynen döner."""
+    from .. import gemini
+
+    denetim = None
+    for n in range(tur):
+        denetim = gemini.senaryo_denetle(s, k, fikir)
+        if denetim is None or (denetim["onay"] and not denetim["uydurma_suphesi"]):
+            break
+        geri = denetim["sorunlar"] + [f"Remove or mark as rumor: {x}" for x in denetim["uydurma_suphesi"]]
+        log.info("%s: Gemini eleştirisi (tur %d, puan %s): %s", is_id, n + 1, denetim.get("puan"), "; ".join(geri))
+        try:
+            geri_metni = "\n- ".join(geri)
+            yeni = sor_json(sistem, kullanici + "\n\nYour previous JSON:\n" + json.dumps(s, ensure_ascii=False)
+                            + "\n\nEditor feedback, fix ALL of it and return the full JSON again:\n- " + geri_metni,
+                            sicaklik=0.6)
+        except Exception as e:
+            log.info("%s: düzeltme alınamadı: %s", is_id, e)
+            break
+        if not isinstance(yeni, dict):
+            break
+        senaryo_birlestir(yeni)
+        if dogrula(yeni, k):  # düzeltme kuralları bozduysa eskisi kalır
+            break
+        s = yeni
+    else:
+        denetim = gemini.senaryo_denetle(s, k, fikir) or denetim  # son hâlin notu (kalite kontrolü okur)
+    return s, denetim
+
 def yaz(is_: Is, k: dict[str, Any]) -> None:
     if is_.veri.get("mod") == "izinli_klip" and is_.veri.get("yayinci_sesi"):
         return klip_metni_yaz(is_, k)
@@ -248,6 +279,9 @@ JSON fields:
         kullanici += f"\n\nPrevious attempt had problems: {'; '.join(sorunlar)}. Fix them."
     else:
         raise ValueError(f"Senaryo 3 denemede kurallara uymadı: {sorunlar}")
+    s, denetim = gemini_ile_iyilestir(s, k, fikir, sistem, kullanici, is_.id)
+    if denetim is not None:
+        is_.veri["gemini_denetim"] = denetim
     kaynak_satiri = "\n".join(fikir.get("kaynaklar", []))
     aciklama = s["aciklama"].strip()
     if kaynak_satiri and kaynak_satiri not in aciklama:

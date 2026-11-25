@@ -121,11 +121,13 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
     eslesen = [o for o in resimler if _anildi(o["etiket"], kucuk)]
     genel = [o for o in resimler if o["etiket"] in GENEL]
     secilen: list[dict[str, Any]] = []
-    for grup in (eslesen, genel, resimler):
+    yerler = [o for o in resimler if o["kategori"] == "Places"]
+    for grup in (eslesen, genel, yerler, resimler):
         aday = [o for o in grup if o not in secilen]
         rnd.shuffle(aday)
         # çeşitlilik: her turda her etiketten en fazla bir görsel (anılan herkes/her yer görünsün)
-        while aday and len(secilen) < adet:
+        sinir = max(2, round(adet * 0.6)) if grup is eslesen else adet  # eşleşen ~%60, kalanı yer görselleri
+        while aday and len(secilen) < sinir:
             tur_etiket: set[str] = set()
             for o in list(aday):
                 if len(secilen) >= adet:
@@ -137,11 +139,14 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
         if len(secilen) >= adet:
             break
     sahneler = [{"tur": "resim", "yol": str(KOK / o["yol"]), "etiket": _etiket_metni(o)} for o in secilen]
-    klipler = [o for o in ogeler if o["tur"] == "video" and _anildi(o["etiket"], kucuk)]
-    if klipler:
-        k = rnd.choice(klipler)
-        sahneler.insert(1, {"tur": "video", "yol": str(KOK / k["yol"]), "bas": 0.0, "en_uzun": KLIP_EN_UZUN,
-                            "etiket": k["etiket"]})
+    videolar = [o for o in ogeler if o["tur"] == "video"]
+    kisiler = [o for o in videolar if "cover" not in o["etiket"].lower() and _anildi(o["etiket"], kucuk)]
+    kapak = [o for o in videolar if "cover" in o["etiket"].lower()]
+    secim = rnd.choice(kisiler) if kisiler else (rnd.choice(kapak) if kapak else None)
+    if secim:
+        etiket = "GTA VI" if secim in kapak else "CHARACTER: " + secim["etiket"].upper()
+        sahneler.insert(1, {"tur": "video", "yol": str(KOK / secim["yol"]), "bas": 0.0,
+                            "en_uzun": KLIP_EN_UZUN, "etiket": etiket})
     return sahneler
 
 

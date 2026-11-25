@@ -47,11 +47,16 @@ def format_sec(k: dict[str, Any], mod: str) -> str:
     return random.choice([f for f in formatlar if sayac.get(f, 0) == en_az])
 
 
+def _noktala(cumle: str) -> str:
+    """Noktalaması olmayan cümlenin sonuna nokta koyar (TTS duraksaması ve altyazı bölünmesi için)."""
+    return cumle if cumle[-1:] in ".!?…\"'”’)" else cumle + "."
+
+
 def senaryo_birlestir(s: dict[str, Any]) -> None:
     """Küçük modeller tek paragrafta kısa yazıyor; cümle listesi isteyip birleştiriyoruz."""
     cumleler = s.get("senaryo_cumleleri")
     if isinstance(cumleler, list) and cumleler:
-        s["senaryo"] = " ".join(str(c).strip() for c in cumleler if str(c).strip())
+        s["senaryo"] = " ".join(_noktala(str(c).strip()) for c in cumleler if str(c).strip())
     s["senaryo"] = str(s.get("senaryo", "")).strip()
 
 

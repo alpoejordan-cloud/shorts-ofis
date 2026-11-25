@@ -45,13 +45,25 @@ KANCA_KALIPLARI = [
 ]
 
 
+YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "ama", "ve", "ile",
+             "için", "bu", "çünkü"}
+
+
 def kanca_duzelt(s: dict[str, Any]) -> str:
     """Ekrandaki kanca metni: en fazla 6 kelime. Yoksa başlıktan türetilir."""
     kanca = str(s.get("kanca_metni") or "").replace("#shorts", "").strip()
     if not kanca:
         kanca = str(s.get("baslik", "")).replace("#shorts", "").strip()
-    sozler = kanca.split()
-    return " ".join(sozler[:6])
+    sozler = kanca.split()[:6]
+    # 6 kelimeye kesince "..., but" gibi yarım kalmasın: sondaki bağlaç/edat ve virgül atılır
+    while len(sozler) > 2 and (sozler[-1].lower().strip(".,!?…") in YARIM_SON or sozler[-2].endswith(",")):
+        sozler.pop()
+    return " ".join(sozler).rstrip(",;:—-")
+
+
+def kanca_yarim_mi(kanca: str) -> bool:
+    sozler = str(kanca or "").replace("#shorts", "").split()
+    return not sozler or len(sozler) > 6 or sozler[-1].lower().strip(".,!?…") in YARIM_SON
 
 
 def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> list[str]:
@@ -62,6 +74,8 @@ def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> lis
         sorunlar.append(f"senaryo {kelime} kelime, {alt}-{ust} olmalı")
     if not s.get("baslik") or len(s["baslik"]) > 95:
         sorunlar.append("başlık boş ya da 95 karakterden uzun")
+    if s.get("kanca_metni") and kanca_yarim_mi(str(s["kanca_metni"])):  # yoksa başlıktan türetilir
+        sorunlar.append("kanca_metni must be a COMPLETE punchy phrase of 3-6 words, not cut off mid-sentence")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")
     if k.get("dil") == "en" and sum(c in "ğüşıöçĞÜŞİÖÇ" for c in str(s.get("baslik", "")) + str(s.get("senaryo", ""))) > 2:

@@ -531,3 +531,32 @@ def test_yarim_kanca_yakalanir(tmp_path, monkeypatch):
     monkeypatch.setattr(kalite, "ses_seviyesi", lambda y: -14.0)
     v = {"mod": "izinli_klip", "baslik": "This is the clip you want", "kanca_metni": "Everyone thinks it's a glitch, but"}
     assert any("yarım" in x for x in kalite.kontrol(cekirdek.Is(kanal="gta_en", veri=v), {"dil": "en"}))
+
+
+def test_konu_filtresi():
+    from ofis.kaynak import yasak_konu
+    assert yasak_konu("Dozens of oil tankers hacked; U.S. suspects Iran") == "savaş"
+    assert yasak_konu("The race to port GTA 6 to PC from a leaked build, illegally") == "korsanlık"
+    assert yasak_konu("Man arrested after shooting") == "suç"
+    assert yasak_konu("New vaccine claims to cure disease") == "sağlık"
+    assert yasak_konu("Cumhurbaşkanı açıkladı") == "siyaset"
+    assert yasak_konu("Bitcoin 100 bin doları aştı", {"id": "finans_tr"}) == "hisse/coin tavsiyesi"
+    assert yasak_konu("Bitcoin rallies", {"id": "teknoloji_en"}) is None
+    assert yasak_konu("Apple unveils a new iPhone with a bigger battery") is None
+    assert yasak_konu("GTA 6 sold 25 million copies in its first week") is None
+
+
+def test_kanca_yarim_kesilmez():
+    from ofis.ajanlar import senarist
+    assert senarist.kanca_duzelt({"kanca_metni": "Everyone thinks it's a glitch, but it's war"}) == "Everyone thinks it's a glitch"
+    assert senarist.kanca_yarim_mi("You didn't know this but")
+    assert not senarist.kanca_yarim_mi("GTA 6 broke a record")
+
+
+def test_konu_filtresi_yanlis_pozitif_yok():
+    from ofis.kaynak import yasak_konu
+    for temiz in ["Should You Participate in the Safe Word Mission in GTA 6?", "particularly good phone",
+                  "İngiltere'de aşırı sıcak", "GTA 6 60fps glitch isn't all it's cracked up to be",
+                  "GTA 6 is great because of all its murderous NPCs"]:
+        assert yasak_konu(temiz) is None, temiz
+    assert yasak_konu("Covid aşısı yeniden gündemde") == "sağlık"

@@ -37,6 +37,39 @@ RSS_VARSAYILAN: dict[str, dict[str, Any]] = {
                   "filtre": []},
 }
 
+# Kanala uygun olmayan konular: haber başlığı/özetinde geçerse makale hiç listelenmez, metinde yoğunsa fikir elenir.
+YASAK_KONU: dict[str, str] = {
+    "siyaset": r"\b(elections?|electoral|president(?:ial)?|congress|senate|senator|parliament|white house|trump|"
+               r"biden|democrats?|republicans?|prime minister|minister|campaign rally|tariffs?|sanctions?|"
+               r"seçim\w*|cumhurbaşkan\w*|bakan\w*|meclis\w*|milletvekil\w*|muhalefet\w*|iktidar\w*|"
+               r"partisi\w*|partiler\w*|partili\w*)\b",
+    "savaş": r"\b(wars?|warfare|military|army|missiles?|airstrikes?|troops|invasion|ceasefire|drones? strikes?|"
+             r"israel\w*|iran\w*|ukrain\w*|russia\w*|gaza|hamas|hezbollah|pentagon|nato|"
+             r"savaş\w*|asker\w*|füze\w*|saldırı\w*|ateşkes\w*|ordu\w*|işgal\w*)\b",
+    "korsanlık": r"\b(pira(?:cy|ted|te)|illegal(?:ly)?|illicit|leaked builds?|cracked (?:version|copy|build)|"
+                 r"crack(?:ing)? group|torrents?|warez|recomp\w*|unofficial ports?|korsan\w*|yasa ?dışı\w*|"
+                 r"kaçak\w*)\b",
+    "suç": r"\b(murder(?:ed|er|ers|s)?|homicide|mass shooting|stabb(?:ed|ing)|arrest(?:ed|s)?|indicted|convicted|"
+           r"kidnap\w*|cinayet\w*|öldürdü\w*|öldürül\w*|tutuklan\w*|gözaltı\w*|bıçakla\w*|silahlı saldırı\w*)\b",
+    "sağlık": r"\b(cancer|vaccines?|cures?|disease|diagnos\w*|clinical trials?|covid|obesity drugs?|ozempic|"
+              r"kanser\w*|aşı(?:sı|ları|lar|lama\w*)?|tedavi\w*|hastalı\w*|ilaç\w*)\b",
+}
+# finans kanalında belirli hisse/coin tavsiyesi sayılabilecek haberler
+YASAK_FINANS = (r"\b(bitcoin|btc|ethereum|altcoin\w*|kripto\w*|coin\w*|memecoin\w*|hedef fiyat\w*|al tavsiye\w*|"
+                r"sat tavsiye\w*|hisse önerisi|model portföy\w*|price target|buy rating|top stocks? to buy)\b")
+
+
+def yasak_konu(metin: str, k: dict[str, Any] | None = None, esik: int = 1) -> str | None:
+    """Metinde yasak konu geçiyorsa konunun adı, yoksa None. esik: aynı konudan en az kaç eşleşme."""
+    kucuk = metin.replace("İ", "i").lower()
+    for ad, desen in YASAK_KONU.items():
+        if len(re.findall(desen, kucuk)) >= esik:
+            return ad
+    if k and k.get("id", "").startswith("finans") and len(re.findall(YASAK_FINANS, kucuk)) >= esik:
+        return "hisse/coin tavsiyesi"
+    return None
+
+
 DURAK = {
     "the", "and", "for", "with", "this", "that", "from", "what", "why", "how", "new", "now", "your", "you", "are",
     "was", "will", "its", "into", "about", "after", "over", "more", "just", "than", "they", "their", "has", "have",
@@ -74,6 +107,10 @@ def makaleler(k: dict[str, Any], adet: int = 60) -> list[dict[str, str]]:
             ozet = re.sub(r"<[^>]+>", " ", g.get("summary", ""))
             ozet = re.sub(r"\s+", " ", ozet).strip()[:300]
             if ayar["filtre"] and not any(f in (baslik + " " + ozet).lower() for f in ayar["filtre"]):
+                continue
+            yasak = yasak_konu(baslik + " " + ozet, k)
+            if yasak:
+                log.info("Konu filtresi (%s): %s", yasak, baslik)
                 continue
             gorulen.add(link)
             sonuc.append({"kaynak": re.sub(r"^https?://(www\.)?", "", adres).split("/")[0],
@@ -121,6 +158,10 @@ def fikre_bagla(fikir: dict[str, Any], makale: dict[str, str]) -> dict[str, Any]
     metin = metin_al(makale["link"])
     if not metin:
         log.info("Elendi (makale metni yok): %s", makale["link"])
+        return None
+    yasak = yasak_konu(metin, esik=3)  # başlık temiz ama metin yasak konuya dayanıyorsa
+    if yasak:
+        log.info("Elendi (konu filtresi: %s): %s", yasak, makale["baslik"])
         return None
     if not uyusuyor(str(fikir.get("konu", "")), makale["baslik"], metin):
         log.info("Elendi (konu makaleyle uyuşmuyor): %s <> %s", fikir.get("konu"), makale["baslik"])

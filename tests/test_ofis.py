@@ -14,7 +14,7 @@ from ofis.yapay_zeka import json_ayikla
 
 def test_kanallar_yukleniyor():
     aktif = cekirdek.kanallar()
-    assert {k["id"] for k in aktif} == {"teknoloji_en", "gta_en"}  # finans_tr beklemede
+    assert {k["id"] for k in aktif} == {"teknoloji_en", "gta_en", "cocuk_en", "cocuk_tr"}  # finans_tr beklemede
     for k in cekirdek.kanallar(sadece_aktif=False):
         assert k["dil"] in {"tr", "en"} and k["ses"] and k["nis"]
 

@@ -13,6 +13,7 @@
   ozet                 bugünün durum özetini yazar (veri/raporlar/)
   yayinla İŞ [İŞ...]   seçilen işleri hemen herkese açık yükler (zamanlama yok)
   panel                ofisin kontrol panelini açar (http://127.0.0.1:8770)
+  cocuk-ornek KANAL    çocuk kanalı için karakter/mekan önizleme görseli çizer (veri/raporlar/)
   hatirlat             yayına giren kampanya kliplerini bildirir (30 dk Content Rewards kuralı)
 """
 from __future__ import annotations
@@ -55,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
     alt.add_parser("temizle")
     alt.add_parser("ozet")
     alt.add_parser("havuz-kur")
+    co = alt.add_parser("cocuk-ornek")
+    co.add_argument("kanal")
     pn = alt.add_parser("panel")
     pn.add_argument("--port", type=int)
     pn.add_argument("--acma", action="store_true", help="tarayıcıyı otomatik açma")
@@ -111,6 +114,12 @@ def _calistir(a: argparse.Namespace) -> int:
 
         print(f"Resmi havuz: {len(kur()['ogeler'])} dosya, kaynaklar: gorseller/gta_resmi/KAYNAKLAR.txt")
         return 0
+    if a.komut == "cocuk-ornek":
+        from .cocuk.onizleme import kadro_gorseli
+        from .cekirdek import kanal
+
+        print("Önizleme:", kadro_gorseli(kanal(a.kanal)))
+        return 0
     if a.komut == "ozet":
         from .temizlik import gunluk_ozet
         print(gunluk_ozet())
@@ -127,7 +136,7 @@ def _calistir(a: argparse.Namespace) -> int:
         from .ajanlar.seslendirme import ses_indir
         from .cekirdek import kanallar
         for k in kanallar(sadece_aktif=False):
-            for ses in [k["ses"], k.get("ses_yedek")]:
+            for ses in dict.fromkeys([k["ses"], k.get("ses_yedek")] + [c.get("ses") for c in k.get("karakterler", [])]):
                 if ses:
                     print("İndirildi:", ses_indir(ses))
         return 0

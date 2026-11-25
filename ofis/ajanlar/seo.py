@@ -13,7 +13,7 @@ import re
 from typing import Any
 
 VARSAYILAN: dict[str, dict[str, Any]] = {
-    "teknoloji_en": {"ana_anahtar": "AI",
+    "teknoloji_en": {"ana_anahtar": "AI", "kabul_edilen_baslar": ["Tech", "Big Tech"],
                      "etiketler": ["AI news", "tech news", "artificial intelligence", "technology", "tech explained",
                                    "gadgets", "AI tools", "tech shorts"],
                      "hashtagler": ["#AI", "#TechNews"]},
@@ -47,7 +47,8 @@ def baslik(ham: str, k: dict[str, Any]) -> str:
     ana = ayar(k)["ana_anahtar"]
     govde = re.sub(r"#shorts", "", ham, flags=re.IGNORECASE).strip(" -|")
     govde = re.sub(r"\s+", " ", govde)
-    if ana and not govde.lower().startswith(ana.lower()):
+    baslar = [ana] + list(ayar(k).get("kabul_edilen_baslar") or [])  # konuya uymayan önek zorlanmasın
+    if ana and not any(govde.lower().startswith(x.lower()) for x in baslar if x):
         # ana anahtar kelime her zaman başta: başlıktaki tekrarı (ve GTA 6 için "GTA VI") çıkarıp başa al
         esler = [re.escape(ana)] + ([r"GTA\s*VI\b", r"GTA6\b"] if ana == "GTA 6" else [])
         for es in esler:
@@ -75,7 +76,8 @@ def aciklama(veri: dict[str, Any], k: dict[str, Any], son_baslik: str) -> str:
     govde_satirlari = [s for s in satirlar if s and s != kredi and not re.fullmatch(r"(#\S+\s*)+", s)]
     cumleler = re.split(r"(?<=[.!?])\s+", " ".join(govde_satirlari[:3]).strip()) if govde_satirlari else []
     ozet = son_baslik.replace("#shorts", "").strip()
-    ilk = ozet if (not ana or ana.lower() in ozet.lower()) else f"{ana}: {ozet}"
+    baslar = [ana] + list(ayar(k).get("kabul_edilen_baslar") or [])
+    ilk = ozet if (not ana or any(x and x.lower() in ozet.lower() for x in baslar)) else f"{ana}: {ozet}"
     govde = " ".join(c for c in cumleler[:3] if c and c.lower() != ilk.lower())
     parcalar = [ilk + ("." if not ilk.endswith((".", "!", "?")) else "")]
     if govde:
@@ -97,7 +99,8 @@ def etiketler(veri: dict[str, Any], k: dict[str, Any]) -> list[str]:
     if veri.get("yayinci"):
         adaylar.append(str(veri["yayinci"]).split("(")[0].strip())
     adaylar += [str(e) for e in (veri.get("zorunlu_etiketler") or [])]
-    adaylar += list(ayar(k)["etiketler"]) + [str(e) for e in (veri.get("etiketler") or [])]
+    # önce videoya özel etiketler (en alakalı), sonra kanalın sabit etiketleri
+    adaylar += [str(e) for e in (veri.get("etiketler") or [])][:8] + list(ayar(k)["etiketler"])
     sonuc: list[str] = []
     toplam = 0
     for e in adaylar:

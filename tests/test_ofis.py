@@ -476,3 +476,10 @@ def test_kalite_gemini_onayi_ve_etiket(tmp_path, monkeypatch):
     assert any("Gemini denetimi yok" in x for x in s) and any("etiketi" in x for x in s)
     v2 = {**v, "senaryo": "This is why the phone is fast and you want it.", "gemini_denetim": {"onay": True}}
     assert kalite.kontrol(cekirdek.Is(kanal="teknoloji_en", veri=v2), {"dil": "en"}) == []
+
+
+def test_seo_tech_basligina_ai_zorlanmaz():
+    from ofis.ajanlar import seo
+    k = {"id": "teknoloji_en"}
+    assert seo.baslik("Tech Privacy Shifts 2026 #shorts", k) == "Tech Privacy Shifts 2026 #shorts"
+    assert seo.baslik("New phone leaks #shorts", k).startswith("AI: ")

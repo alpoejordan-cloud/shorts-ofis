@@ -182,6 +182,9 @@ def resmi_metin() -> str:
     if metin and yerler:
         metin += ("\n\nOfficial location names in the Rockstar GTA VI media pack (" + MEDYA_SAYFASI + "): "
                   + ", ".join(yerler) + ". Leonida is the state; Vice City is its city.")
+    kisiler = sorted({o["etiket"] for o in havuz() if o["kategori"] == "People" and " and " not in o["etiket"]})
+    if metin and kisiler:
+        metin += ("\nOfficial character full names in the same media pack: " + ", ".join(kisiler) + ".")
     return metin
 
 

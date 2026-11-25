@@ -33,6 +33,22 @@ ASAMA_BILGI: dict[str, tuple[str, str, str | None]] = {
 }
 
 
+def kampanya_klibi_hazir(is_: Is) -> None:
+    """Kampanya klibi masaya düştü: Windows bildirimi + veri/raporlar/kampanya_hazir.md listesi.
+    Yayın kullanıcı onayıyla (python -m ofis yayinla <id>), ardından 30 dk Submit hatırlatıcısı başlar."""
+    from .cekirdek import RAPORLAR
+    from .ajanlar.hatirlatici import windows_bildirim
+
+    baslik = str(is_.veri.get("baslik", ""))
+    try:
+        windows_bildirim("Kampanya klibi hazır", f"{is_.veri.get('yayinci', '')}: {baslik[:60]}")
+    except Exception as e:  # bildirim gelmese de iş devam etsin
+        log.warning("Bildirim gösterilemedi: %s", e)
+    satir = f"- {is_.id} | {is_.veri.get('yayinci', '')} | {baslik} | yayınlamak için: python -m ofis yayinla {is_.id}\n"
+    with open(RAPORLAR / "kampanya_hazir.md", "a", encoding="utf-8") as f:
+        f.write(satir)
+
+
 def otomatik_onay_uygun(is_: Is, k: dict[str, Any]) -> bool:
     """Kanal otomatik onaylıysa kalite kontrolünü çalıştırır; geçmeyen video onay masasına düşer."""
     if not k.get("otomatik_onay"):
@@ -62,6 +78,8 @@ def is_ilerlet(is_: Is) -> None:
             is_.durum = "onaylandi" if otomatik_onay_uygun(is_, k) else "onay_bekliyor"
             is_.kaydet()
             log.info("%s: %s", is_.id, "otomatik onaylandı" if is_.durum == "onaylandi" else "onay bekliyor")
+            if is_.veri.get("kampanya"):
+                kampanya_klibi_hazir(is_)
             return
         ajan, sonraki = ADIMLAR[is_.durum]
         ad, ne, arac = ASAMA_BILGI[is_.durum]

@@ -75,7 +75,7 @@ kanallar:
     kelime_araligi: [60, 95]    # 25-40 sn
     otomatik_onay: true         # kullanıcı açtı 2026-11-25; kampanya klipleri yine masaya düşer
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
-    klip_orani: 0.3             # videoların ~%30'u izinli kampanya klibi (klip varsa); gerisi haber/yorum
+    klip_orani: 0.5             # videoların ~yarısı izinli kampanya klibi (Dom; klip varsa); masada bekler
     resmi_havuz: true           # görseller: Rockstar resmi medyası (gorseller/gta_resmi); Openverse/AI yalnız yedek
     resmi_konu_orani: 0.5       # videoların ~yarısı 'en önemli yerler/karakterler' (kaynak: rockstargames.com/VI)
     hedef_gorsel: 12            # resmi havuzdan farklı görsel sayısı (tekrar olmasın)

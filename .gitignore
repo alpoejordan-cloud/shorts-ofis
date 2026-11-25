@@ -1,5 +1,5 @@
 .env
-config/client_secret.json
+config/client_secret*.json
 veri/
 klipler/*/
 izinler/

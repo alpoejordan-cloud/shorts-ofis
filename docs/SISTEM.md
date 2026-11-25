@@ -102,3 +102,9 @@ python -m ofis ozet          # veri/raporlar/gunluk_TARIH.md
 - Onaysız yükleme yok. Herkese açık yayın, kampanyaya katılma ve gönderme düğmelerine kullanıcı basar.
 - Yalnızca izinli ya da lisanslı kaynak kullanılır. İzinsiz yayıncı videosu indirilmez.
 - `client_secret.json`, `.env` ve `veri/tokenlar` asla commit edilmez.
+
+## Çocuk kanalları
+
+`cocuk_en` ve `cocuk_tr` kendi animasyon hattını kullanır (`ofis/cocuk/`): hikaye → çok sesli seslendirme →
+kodla çizilen 2D animasyon. Made for Kids işaretli, ayrı Google Cloud projesi (`config/client_secret_cocuk.json`,
+ayrı günlük kota). Ayrıntı: `docs/COCUK_KANALLARI.md`.

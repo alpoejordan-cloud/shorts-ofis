@@ -33,6 +33,26 @@ ASAMA_BILGI: dict[str, tuple[str, str, str | None]] = {
 }
 
 
+def _cocuk_adimlari():
+    from .cocuk import animasyon, hikaye
+    from .cocuk import ses as cocuk_ses
+
+    adim = {"fikir": (hikaye.yaz, "senaryo"), "senaryo": (cocuk_ses.seslendir, "ses"),
+            "ses": (animasyon.sahne_hazirla, "gorsel"), "gorsel": (animasyon.canlandir, "video")}
+    bilgi = {"fikir": ("senarist", "çocuk hikayesi yazıyor", "ollama"),
+             "senaryo": ("seslendirme", "anlatıcı ve karakterleri seslendiriyor", None),
+             "ses": ("gorsel", "karakterleri ve mekanları çiziyor", None),
+             "gorsel": ("kurgu", "animasyonu çiziyor (FFmpeg)", "ffmpeg")}
+    return adim, bilgi
+
+
+def kanal_adimlari(k: dict[str, Any]):
+    """Kanal türüne göre (adımlar, aşama bilgisi): çocuk kanalları kendi animasyon hattını kullanır."""
+    from .cocuk import cocuk_kanali_mi
+
+    return _cocuk_adimlari() if cocuk_kanali_mi(k) else (ADIMLAR, ASAMA_BILGI)
+
+
 def kampanya_klibi_hazir(is_: Is) -> None:
     """Kampanya klibi masaya düştü: Windows bildirimi + veri/raporlar/kampanya_hazir.md listesi.
     Yayın kullanıcı onayıyla (python -m ofis yayinla <id>), ardından 30 dk Submit hatırlatıcısı başlar."""
@@ -73,7 +93,8 @@ def otomatik_onay_uygun(is_: Is, k: dict[str, Any]) -> bool:
 def is_ilerlet(is_: Is) -> None:
     """Bir işi bitene, onaya düşene veya hata verene kadar ilerletir."""
     k = kanal(is_.kanal)
-    while is_.durum in ADIMLAR or is_.durum == "video":
+    adimlar, asama_bilgi = kanal_adimlari(k)
+    while is_.durum in adimlar or is_.durum == "video":
         if is_.durum == "video":
             is_.durum = "onaylandi" if otomatik_onay_uygun(is_, k) else "onay_bekliyor"
             is_.kaydet()
@@ -81,8 +102,8 @@ def is_ilerlet(is_: Is) -> None:
             if is_.veri.get("kampanya"):
                 kampanya_klibi_hazir(is_)
             return
-        ajan, sonraki = ADIMLAR[is_.durum]
-        ad, ne, arac = ASAMA_BILGI[is_.durum]
+        ajan, sonraki = adimlar[is_.durum]
+        ad, ne, arac = asama_bilgi[is_.durum]
         try:
             with calisiyor(ad, ne, yz=arac, is_id=is_.id, kanal=is_.kanal,
                            baslik=is_.veri.get("baslik") or is_.veri.get("konu")):
@@ -178,6 +199,16 @@ def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
             yeni.append(i)
 
     kalan = adet - len(yeni)
+    from .cocuk import cocuk_kanali_mi
+
+    if kalan > 0 and cocuk_kanali_mi(k):  # çocuk kanalı: trend yok, tema/karakter sırasıyla özgün hikaye
+        from .cocuk import hikaye
+
+        for f in hikaye.fikir_uret(k, kalan):
+            i = Is(kanal=k["id"], veri=f)
+            i.kaydet()
+            yeni.append(i)
+        kalan = 0
     if kalan > 0:
         with calisiyor("trend", f"{kalan} video fikri arıyor", kanal=k["id"]):
             fikirler = trend.fikir_bul(k, kalan)

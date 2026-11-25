@@ -19,8 +19,22 @@ KAPSAMLAR = [
 ]
 
 
-def istemci_dosyasi() -> Path:
+def istemci_dosyasi(kanal_id: str | None = None) -> Path:
+    """Kanalın Google Cloud OAuth dosyası. Kanal ayarında `google_istemci` varsa (ör. çocuk kanalları için
+    ayrı proje = ayrı günlük kota) o dosya, yoksa config/client_secret.json."""
+    if kanal_id:
+        try:
+            ad = kanal(kanal_id).get("google_istemci")
+        except KeyError:
+            ad = None
+        if ad:
+            return AYAR / str(ad)
     return AYAR / "client_secret.json"
+
+
+def kota_grubu(kanal_id: str) -> str:
+    """Aynı Google Cloud projesini (aynı OAuth dosyasını) kullanan kanallar aynı günlük kotayı paylaşır."""
+    return istemci_dosyasi(kanal_id).name
 
 
 def token_yolu(kanal_id: str) -> Path:
@@ -44,9 +58,10 @@ def kimlik(kanal_id: str, etkilesimli: bool = False):
             raise RuntimeError(f"{kanal_id} için izin yok. Şunu çalıştır: python -m ofis yetkilendir {kanal_id}")
         from google_auth_oauthlib.flow import InstalledAppFlow
 
-        if not istemci_dosyasi().exists():
-            raise RuntimeError("config/client_secret.json yok. Kurulum rehberindeki Google Cloud adımını yap.")
-        akis = InstalledAppFlow.from_client_secrets_file(str(istemci_dosyasi()), KAPSAMLAR)
+        dosya = istemci_dosyasi(kanal_id)
+        if not dosya.exists():
+            raise RuntimeError(f"config/{dosya.name} yok. Kurulum rehberindeki Google Cloud adımını yap.")
+        akis = InstalledAppFlow.from_client_secrets_file(str(dosya), KAPSAMLAR)
         print(f"\nTarayıcı açılacak. '{kanal_id}' için doğru YouTube KANALINI seç.\n")
         # select_account: Google her seferinde hesap/kanal seçtirir (son kullanılan kanala otomatik bağlanmasın)
         k = akis.run_local_server(port=0, prompt="consent select_account", access_type="offline")
@@ -100,7 +115,8 @@ def yukle_bir(is_: Is, k: dict[str, Any]) -> None:
         zaman = sonraki_yayin_zamani(k, dolu)
     durum: dict[str, Any] = {
         "privacyStatus": "public" if hemen else "private",
-        "selfDeclaredMadeForKids": False,
+        # çocuk kanalları "Made for Kids" (COPPA) olarak işaretlenir: yorumlar ve kişiselleştirilmiş reklam kapanır
+        "selfDeclaredMadeForKids": bool(k.get("cocuklar_icin", False)),
         "containsSyntheticMedia": bool(is_.veri.get("yapay_icerik", False)),
     }
     if not hemen:
@@ -137,11 +153,14 @@ def kota_gunu(zaman: datetime | None = None) -> str:
     return (zaman or datetime.now(ZoneInfo("UTC"))).astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat()
 
 
-def kota_gunundeki_yukleme(simdi: datetime | None = None) -> int:
-    """Bu kota gününde yapılan yükleme sayısı (her yükleme 1.600 birim; 10.000 birimle ~6)."""
+def kota_gunundeki_yukleme(simdi: datetime | None = None, grup: str | None = None) -> int:
+    """Bu kota gününde yapılan yükleme sayısı (her yükleme 1.600 birim; 10.000 birimle ~6).
+    grup verilirse yalnız o Google projesini kullanan kanallar sayılır."""
     gun = kota_gunu(simdi)
     sayi = 0
     for i in isler("yuklendi"):
+        if grup and kota_grubu(i.kanal) != grup:
+            continue
         zaman = i.veri.get("yukleme_zamani")
         if not zaman:
             continue
@@ -158,12 +177,18 @@ def yukle_hepsi(gunluk_sinir: int | None = None) -> int:
     from googleapiclient.errors import HttpError
 
     sinir = gunluk_sinir or int(ortam("GUNLUK_YUKLEME_SINIRI", "6"))
-    yuklenen = kota_gunundeki_yukleme()
+    yuklenen: dict[str, int] = {}  # her Google projesinin kendi kotası var
+    dolu: set[str] = set()
     sayac = 0
     for i in isler("onaylandi"):
-        if yuklenen + sayac >= sinir:
-            log.info("Günlük yükleme sınırı (%d) doldu", sinir)
-            break
+        grup = kota_grubu(i.kanal)
+        if grup not in yuklenen:
+            yuklenen[grup] = kota_gunundeki_yukleme(grup=grup)
+        if grup in dolu or yuklenen[grup] >= sinir:
+            if grup not in dolu:
+                log.info("Günlük yükleme sınırı (%d) doldu (%s)", sinir, grup)
+            dolu.add(grup)
+            continue
         try:
             from ..olay import calisiyor
 
@@ -171,10 +196,12 @@ def yukle_hepsi(gunluk_sinir: int | None = None) -> int:
                            baslik=i.veri.get("baslik")):
                 yukle_bir(i, kanal(i.kanal))
             sayac += 1
+            yuklenen[grup] += 1
         except HttpError as e:
             if "quota" in str(e).lower():
-                log.warning("YouTube kotası doldu, yarın devam edilecek")
-                break
+                log.warning("YouTube kotası doldu (%s), yarın devam edilecek", grup)
+                dolu.add(grup)
+                continue
             i.hatalar.append(f"yükleme: {e}")
             i.kaydet()
             log.error("%s yüklenemedi: %s", i.id, e)

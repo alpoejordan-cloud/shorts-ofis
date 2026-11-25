@@ -104,6 +104,8 @@ def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
     denetim = v.get("gemini_denetim") or {}
     if denetim.get("uydurma_suphesi"):
         sorunlar.append("uydurma şüphesi (Gemini): " + "; ".join(denetim["uydurma_suphesi"][:3]))
+    if v.get("mod") == "cocuk_hikaye":
+        return sorunlar + cocuk_kontrol(v, k)
     if v.get("mod") != "izinli_klip":
         from .kaynak import metin_oku
 
@@ -119,6 +121,25 @@ def kontrol(is_: Is, k: dict[str, Any]) -> list[str]:
         etiket = SAHNE_ETIKETI.findall(senaryo)
         if etiket:
             sorunlar.append("seslendirmede başlık etiketi okunuyor: " + ", ".join(etiket[:3]))
+    return sorunlar
+
+
+def cocuk_kontrol(v: dict[str, Any], k: dict[str, Any]) -> list[str]:
+    """Çocuk hikayesi: güvenlik sözcükleri + (ayarlıysa) Gemini çocuk denetimi onayı şart."""
+    from .cocuk.hikaye import guvenlik
+
+    sorunlar = []
+    metin = " ".join([str(v.get("baslik", "")), str(v.get("kanca_metni", "")), str(v.get("senaryo", "")),
+                      str(v.get("aciklama", ""))])
+    yasak = guvenlik(metin, k.get("dil", "en"))
+    if yasak:
+        sorunlar.append("çocuklara uygun olmayan sözcük: " + ", ".join(yasak))
+    denetim = v.get("cocuk_denetim")
+    if denetim and not denetim.get("onay"):
+        sorunlar.append(f"Gemini çocuk denetimi onaylamadı (puan {denetim.get('puan')}): "
+                        + "; ".join(denetim.get("sorunlar", [])[:3]))
+    elif not denetim and k.get("gemini_onayi_sart", True):
+        sorunlar.append("Gemini çocuk denetimi yapılamadı (anahtar/kota): güvenlik için masada bekliyor")
     return sorunlar
 
 

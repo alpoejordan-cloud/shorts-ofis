@@ -46,6 +46,14 @@ def kontrol() -> list[tuple[str, bool, bool, str]]:
               ".env dosyasına YOUTUBE_API_ANAHTARI=... ekle; yoksa trendler Google Trends ve Reddit'ten gelir"))
     s.append(("Google OAuth dosyası", istemci_dosyasi().exists(), False,
               "config/client_secret.json koy (rehber: docs/KURULUM.md, adım 4). Yükleme için şart."))
+    for dosya in sorted({istemci_dosyasi(k["id"]).name for k in kanallar()} - {"client_secret.json"}):
+        s.append((f"Google OAuth dosyası ({dosya})", (istemci_dosyasi().parent / dosya).exists(), False,
+                  f"config/{dosya} koy: çocuk kanalları için ayrı Google Cloud projesi (rehber: docs/COCUK_KANALLARI.md)"))
+    for k in kanallar():
+        for c in k.get("karakterler", []):
+            if c.get("ses"):
+                s.append((f"Karakter sesi {c['ses']} ({k['id']}/{c['id']})", ses_yolu(c["ses"]).exists(), False,
+                          "python -m ofis sesleri-indir (yoksa ilk kullanımda iner)"))
     for k in kanallar():
         s.append((f"YouTube izni: {k['id']}", token_yolu(k["id"]).exists(), False,
                   f"python -m ofis yetkilendir {k['id']}"))

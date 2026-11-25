@@ -92,3 +92,11 @@ def test_kisa_animasyon(monkeypatch):
     animasyon.canlandir(i, k)
     assert (i.klasor / "video.mp4").stat().st_size > 10000
     assert i.veri["kare_sayisi"] == int(np.ceil(i.veri["sure"] * animasyon.FPS))
+
+
+def test_sirada_bekleyen_hazir_hikayeler(monkeypatch):
+    k = cekirdek.kanal("cocuk_tr")
+    monkeypatch.setattr(hikaye, "gemini_denetim", lambda h, k: None)
+    ilk = hikaye.sirada_bekleyen_hikayeler(k, 5)
+    assert len(ilk) >= 2 and all(i.durum == "senaryo" and i.veri["hazir_dosya"].startswith("tr_") for i in ilk)
+    assert hikaye.sirada_bekleyen_hikayeler(k, 5) == []  # aynı dosya ikinci kez kullanılmaz

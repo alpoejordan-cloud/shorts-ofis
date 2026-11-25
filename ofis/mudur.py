@@ -204,7 +204,10 @@ def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
     if kalan > 0 and cocuk_kanali_mi(k):  # çocuk kanalı: trend yok, tema/karakter sırasıyla özgün hikaye
         from .cocuk import hikaye
 
-        for f in hikaye.fikir_uret(k, kalan):
+        for i in hikaye.sirada_bekleyen_hikayeler(k, kalan):  # önce hikayeler/ klasöründeki hazır hikayeler
+            yeni.append(i)
+        kalan -= len(yeni)
+        for f in hikaye.fikir_uret(k, max(kalan, 0)):
             i = Is(kanal=k["id"], veri=f)
             i.kaydet()
             yeni.append(i)

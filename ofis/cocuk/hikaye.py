@@ -327,3 +327,28 @@ def hazir_hikaye_is(k: dict[str, Any], h: dict[str, Any], tema: str = "") -> Is:
     i.durum = "senaryo"
     i.kaydet()
     return i
+
+
+def sirada_bekleyen_hikayeler(k: dict[str, Any], adet: int) -> list[Is]:
+    """hikayeler/<dil>_*.json dosyalarından henüz kullanılmamış olanlardan iş açar (zamanlanmış üretim
+    önce bunları kullanır). Kurallara uymayan dosya atlanır ve günlüğe yazılır."""
+    from ..cekirdek import KOK
+
+    if adet <= 0:
+        return []
+    kullanilan = {i.veri.get("hazir_dosya") for i in isler(kanal_id=k["id"])}
+    sonuc: list[Is] = []
+    for yol in sorted((KOK / "hikayeler").glob(f"{k.get('dil', 'en')}_*.json")):
+        if len(sonuc) >= adet:
+            break
+        if yol.name in kullanilan:
+            continue
+        try:
+            i = hazir_hikaye_is(k, json.loads(yol.read_text(encoding="utf-8")))
+        except (ValueError, OSError) as e:
+            log.warning("%s atlandı: %s", yol.name, e)
+            continue
+        i.veri["hazir_dosya"] = yol.name
+        i.kaydet()
+        sonuc.append(i)
+    return sonuc

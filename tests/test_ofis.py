@@ -721,3 +721,10 @@ def test_panel_api_ve_eylemler():
         assert post({"eylem": "ayar", "kanal": "gta_en", "alan": "ses", "deger": 1}) == {"kod": 400}
     finally:
         sunucu.shutdown()
+
+
+def test_seo_baslik_cumleyi_bozmaz():
+    from ofis.ajanlar import seo
+    k = {"id": "gta_en"}
+    assert seo.baslik("Did GTA 6 Break 39M Players? #shorts", k) == "Did GTA 6 Break 39M Players? #shorts"
+    assert seo.baslik("Why Palworld went quiet during GTA 6 #shorts", k).startswith("GTA 6: Why Palworld")

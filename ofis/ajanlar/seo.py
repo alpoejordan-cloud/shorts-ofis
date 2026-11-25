@@ -48,7 +48,8 @@ def baslik(ham: str, k: dict[str, Any]) -> str:
     govde = re.sub(r"#shorts", "", ham, flags=re.IGNORECASE).strip(" -|")
     govde = re.sub(r"\s+", " ", govde)
     baslar = [ana] + list(ayar(k).get("kabul_edilen_baslar") or [])  # konuya uymayan önek zorlanmasın
-    if ana and not any(govde.lower().startswith(x.lower()) for x in baslar if x):
+    ilk_kelimeler = " ".join(govde.split()[:5]).lower()  # anahtar zaten başlığın başındaysa (ilk 5 kelime) cümle bozulmasın
+    if ana and not any(x.lower() in ilk_kelimeler for x in baslar if x):
         # ana anahtar kelime her zaman başta: başlıktaki tekrarı (ve GTA 6 için "GTA VI") çıkarıp başa al
         esler = [re.escape(ana)] + ([r"GTA\s*VI\b", r"GTA6\b"] if ana == "GTA 6" else [])
         for es in esler:

@@ -144,7 +144,11 @@ def yukle_hepsi(gunluk_sinir: int | None = None) -> int:
             log.info("Günlük yükleme sınırı (%d) doldu", sinir)
             break
         try:
-            yukle_bir(i, kanal(i.kanal))
+            from ..olay import calisiyor
+
+            with calisiyor("yukleyici", "YouTube'a yüklüyor", yz="youtube", is_id=i.id, kanal=i.kanal,
+                           baslik=i.veri.get("baslik")):
+                yukle_bir(i, kanal(i.kanal))
             sayac += 1
         except HttpError as e:
             if "quota" in str(e).lower():

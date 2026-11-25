@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from .ajanlar import gorsel, kurgu, senarist, seslendirme, trend, yukleyici
 from .cekirdek import Is, gunluk_al, isler, kanal, kanallar
+from .olay import calisiyor
 
 log = gunluk_al("mudur")
 EN_FAZLA_DENEME = 3
@@ -21,6 +22,14 @@ ADIMLAR: dict[str, tuple[Callable[[Is, dict[str, Any]], None], str]] = {
     "senaryo": (seslendirme.seslendir, "ses"),
     "ses": (gorsel.topla, "gorsel"),
     "gorsel": (kurgu.kurgula, "video"),
+}
+
+# panel için: her aşamayı hangi ajan yapıyor, ne yapıyor, hangi yapay zeka/araçla
+ASAMA_BILGI: dict[str, tuple[str, str, str | None]] = {
+    "fikir": ("senarist", "haber metninden senaryo yazıyor", "ollama"),
+    "senaryo": ("seslendirme", "seslendiriyor ve kelime zamanlarını çıkarıyor", None),
+    "ses": ("gorsel", "görsel ve sahne topluyor", None),
+    "gorsel": ("kurgu", "videoyu kurguluyor (FFmpeg)", "ffmpeg"),
 }
 
 
@@ -35,7 +44,8 @@ def otomatik_onay_uygun(is_: Is, k: dict[str, Any]) -> bool:
     from .kalite import kontrol
 
     try:
-        sorunlar = kontrol(is_, k)
+        with calisiyor("kalite", "kalite kontrolü yapıyor", is_id=is_.id, kanal=is_.kanal):
+            sorunlar = kontrol(is_, k)
     except Exception as e:  # kontrol çalışamazsa güvenli taraf: masaya
         sorunlar = [f"kalite kontrolü çalışmadı: {e}"]
     is_.veri["kalite_sorunlari"] = sorunlar
@@ -54,8 +64,11 @@ def is_ilerlet(is_: Is) -> None:
             log.info("%s: %s", is_.id, "otomatik onaylandı" if is_.durum == "onaylandi" else "onay bekliyor")
             return
         ajan, sonraki = ADIMLAR[is_.durum]
+        ad, ne, arac = ASAMA_BILGI[is_.durum]
         try:
-            ajan(is_, k)
+            with calisiyor(ad, ne, yz=arac, is_id=is_.id, kanal=is_.kanal,
+                           baslik=is_.veri.get("baslik") or is_.veri.get("konu")):
+                ajan(is_, k)
         except Exception as e:
             is_.deneme += 1
             is_.hatalar.append(f"{datetime.now():%d.%m %H:%M} {is_.durum}: {e}")
@@ -136,7 +149,9 @@ def kanal_icin_uret(k: dict[str, Any], adet: int | None = None) -> list[Is]:
 
     kalan = adet - len(yeni)
     if kalan > 0:
-        for f in trend.fikir_bul(k, kalan):
+        with calisiyor("trend", f"{kalan} video fikri arıyor", kanal=k["id"]):
+            fikirler = trend.fikir_bul(k, kalan)
+        for f in fikirler:
             i = Is(kanal=k["id"], veri={"mod": "normal", **f})
             i.kaydet()
             yeni.append(i)

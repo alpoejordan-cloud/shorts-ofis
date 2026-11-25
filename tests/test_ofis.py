@@ -633,3 +633,90 @@ def test_uzun_kanca_kisaltilir_yarimsa_reddedilir():
     assert senarist.dogrula(uzun, k) == []
     yarim = {**uzun, "kanca_metni": "Everyone thinks GTA is"}
     assert senarist.dogrula(yarim, k)
+
+
+# ---- Kontrol paneli ve canlı olaylar ----
+def test_olay_calisiyor_acik_ve_bitmis():
+    from ofis import olay
+    with olay.calisiyor("senarist", "senaryo yazıyor", is_id="is-1", kanal="teknoloji_en"):
+        with olay.calisiyor(None, "düşünüyor", yz="ollama"):
+            acik = olay.acik_isler(olay.oku())
+            assert {o["ajan"] for o in acik} >= {"senarist"}
+            assert any(o["yz"] == "ollama" and o["ajan"] == "senarist" and o["is"] == "is-1" for o in acik)
+    assert not [o for o in olay.acik_isler(olay.oku()) if o["mesaj"] in ("senaryo yazıyor", "düşünüyor")]
+    try:
+        with olay.calisiyor("kurgu", "patlayan iş"):
+            raise RuntimeError("bozuldu")
+    except RuntimeError:
+        pass
+    son = olay.oku()[-1]
+    assert son["tur"] == "hata" and "bozuldu" in son["mesaj"]
+
+
+def test_olay_log_satirlari_akisa_duser():
+    from ofis import olay
+    from ofis.cekirdek import gunluk_al
+    gunluk_al("analist").info("deneme satırı 123")
+    assert any(o["mesaj"] == "deneme satırı 123" and o["ajan"] == "analist" for o in olay.oku())
+
+
+def test_panel_kanal_ayari_yorumlari_korur(monkeypatch, tmp_path):
+    import shutil
+
+    import yaml
+
+    from ofis import panel
+    from ofis.cekirdek import AYAR
+    shutil.copy(AYAR / "kanallar.yaml", tmp_path / "kanallar.yaml")
+    monkeypatch.setattr(panel, "AYAR", tmp_path)
+    once = (tmp_path / "kanallar.yaml").read_text(encoding="utf-8")
+    panel.kanal_ayari_yaz("gta_en", "otomatik_onay", False)
+    panel.kanal_ayari_yaz("teknoloji_en", "gunluk_video", 3)
+    sonra = (tmp_path / "kanallar.yaml").read_text(encoding="utf-8")
+    k = {x["id"]: x for x in yaml.safe_load(sonra)["kanallar"]}
+    assert k["gta_en"]["otomatik_onay"] is False and k["teknoloji_en"]["otomatik_onay"] is True
+    assert k["teknoloji_en"]["gunluk_video"] == 3 and k["gta_en"]["gunluk_video"] == 2
+    assert sonra.count("\n") == once.count("\n") and "# Her kanalın kendi" in sonra
+
+
+def test_panel_api_ve_eylemler():
+    import json as _json
+    import threading
+    import urllib.request
+    from http.server import ThreadingHTTPServer
+
+    from ofis import panel
+    from ofis.cekirdek import Is
+    i = Is(kanal="teknoloji_en", durum="onay_bekliyor", veri={"baslik": "Panel deneme", "senaryo": "metin"})
+    i.kaydet()
+    h = Is(kanal="gta_en", durum="hata", hatalar=["25.11 07:40 ses: bozuk"])
+    h.kaydet()
+    sunucu = ThreadingHTTPServer(("127.0.0.1", 0), panel.Isleyici)
+    threading.Thread(target=sunucu.serve_forever, daemon=True).start()
+    adres = f"http://127.0.0.1:{sunucu.server_address[1]}"
+    try:
+        sayfa = urllib.request.urlopen(adres + "/").read().decode("utf-8")
+        assert panel.JETON in sayfa and "Canlı Ofis" in sayfa
+        for yol in ("/api/canli", "/api/isler", "/api/sistem", "/api/rapor", "/api/gunluk"):
+            assert isinstance(_json.loads(urllib.request.urlopen(adres + yol).read()), dict)
+        veri = _json.loads(urllib.request.urlopen(adres + "/api/isler").read())
+        assert any(x["id"] == i.id for x in veri["onay"]) and any(x["id"] == h.id for x in veri["hatalar"])
+        sistem = _json.loads(urllib.request.urlopen(adres + "/api/sistem").read())
+        assert "GEMINI_API_ANAHTARI" not in _json.dumps(sistem)  # sırlar asla panelde yok
+
+        def post(g, jeton=panel.JETON):
+            istek = urllib.request.Request(adres + "/api/eylem", data=_json.dumps(g).encode(), method="POST",
+                                           headers={"Content-Type": "application/json", "X-Panel-Jeton": jeton})
+            try:
+                return _json.loads(urllib.request.urlopen(istek).read())
+            except urllib.error.HTTPError as e:
+                return {"kod": e.code}
+        assert post({"eylem": "onayla", "id": i.id}, jeton="yanlis") == {"kod": 403}
+        assert Is.yukle(i.id).durum == "onay_bekliyor"
+        assert post({"eylem": "onayla", "id": i.id})["tamam"]
+        assert Is.yukle(i.id).durum == "onaylandi"
+        assert post({"eylem": "tekrar_dene", "id": h.id})["tamam"]
+        assert Is.yukle(h.id).durum == "ses" and Is.yukle(h.id).deneme == 0
+        assert post({"eylem": "ayar", "kanal": "gta_en", "alan": "ses", "deger": 1}) == {"kod": 400}
+    finally:
+        sunucu.shutdown()

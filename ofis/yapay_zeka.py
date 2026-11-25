@@ -65,7 +65,10 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.8, deneme: int = 3
             }
             if model_adi().startswith(("qwen3", "deepseek-r1")):
                 istek["think"] = False  # düşünme modu CPU'da çok yavaş; JSON için gerekmez
-            cevap = requests.post(f"{_adres()}/api/chat", json=istek, timeout=900)
+            from .olay import cagiran_gorev, calisiyor
+
+            with calisiyor(None, cagiran_gorev(), yz="ollama", model=model_adi()):
+                cevap = requests.post(f"{_adres()}/api/chat", json=istek, timeout=900)
             cevap.raise_for_status()
             return json_ayikla(cevap.json()["message"]["content"])
         except (requests.RequestException, KeyError, YapayZekaHatasi) as e:

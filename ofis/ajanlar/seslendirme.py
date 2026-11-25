@@ -9,6 +9,7 @@ from typing import Any
 import requests
 
 from ..cekirdek import SESLER, Is, gunluk_al
+from ..olay import calisiyor
 
 log = gunluk_al("seslendirme")
 
@@ -88,12 +89,18 @@ def sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float = 1.0, yedek: str
     """Kokoro sesi istenirse onu dener, olmazsa yedek Piper sesine düşer."""
     if kokoro_mu(ses_adi):
         try:
-            return _kokoro_sentezle(metin, ses_adi, cikis, hiz)
+            with calisiyor(None, f"İngilizce seslendiriyor ({ses_adi.split(':', 1)[1]})", yz="kokoro"):
+                return _kokoro_sentezle(metin, ses_adi, cikis, hiz)
         except Exception as e:
             if not yedek:
                 raise
             log.warning("Kokoro çalışmadı (%s), yedek ses kullanılıyor: %s", e, yedek)
             ses_adi = yedek
+    with calisiyor(None, f"seslendiriyor ({ses_adi})", yz="piper"):
+        return _piper_sentezle(metin, ses_adi, cikis, hiz)
+
+
+def _piper_sentezle(metin: str, ses_adi: str, cikis: Path, hiz: float) -> float:
     ses = _ses_yukle(ses_adi)
     with wave.open(str(cikis), "wb") as wf:
         if hasattr(ses, "synthesize_wav"):  # piper-tts 1.3+
@@ -262,6 +269,11 @@ def ses_dizisi(ses_dosyasi: Path):
 
 
 def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
+    with calisiyor(None, "sesi dinleyip altyazı için kelime zamanlarını çıkarıyor", yz="whisper"):
+        return _kelime_zamanlari(ses_dosyasi, dil)
+
+
+def _kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
     from faster_whisper import WhisperModel
 
     model = WhisperModel("small", device="cpu", compute_type="int8", cpu_threads=2)  # bilgisayarı yormasın

@@ -183,11 +183,11 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
     _DIL["dil"] = dil
     stil = stil or {}
     yazi = stil.get("yazi_tipi", "Arial Black")
-    boyut = stil.get("boyut", 82)
+    boyut = stil.get("boyut", 92)
     renk = stil.get("renk", "&H00FFFFFF")
     vurgu = stil.get("vurgu", "&H0000E5FF")  # sarı (ASS renkleri BGR)
     marj = stil.get("alt_bosluk", 600)
-    kanca_boyut = stil.get("kanca_boyut", 92)
+    kanca_boyut = stil.get("kanca_boyut", 100)
     kanca_sure = float(stil.get("kanca_sure", 2.8))
     satirlar = [
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0",
@@ -196,7 +196,7 @@ def ass_yaz(gruplar: list[dict[str, Any]], cikis: Path, stil: dict[str, Any] | N
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, "
         "Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
         "MarginL, MarginR, MarginV, Encoding",
-        f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,7,4,2,70,70,{marj},1",
+        f"Style: Ana,{yazi},{boyut},{renk},{vurgu},&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,9,5,2,60,60,{marj},1",
         f"Style: Kanca,{yazi},{kanca_boyut},&H00FFFFFF,&H000000FF,&H1E000000,&H00000000,-1,0,0,0,100,100,1,0,3,24,0,8,"
         "80,80,300,1",
         "Style: Not,Arial,46,&H00FFFFFF,&H000000FF,&H40000000,&H00000000,-1,0,0,0,100,100,0,0,3,14,0,8,"

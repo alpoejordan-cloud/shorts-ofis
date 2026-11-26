@@ -15,7 +15,7 @@ kanallar:
     ses_hizi: 1.08
     gunluk_video: 2  # kapasite: tek Google projesi günde ~6 yükleme (10.000 birim / 1.600); toplam 5
     yayin_saatleri: ["17:00", "23:00"]  # ABD sabahı + ABD öğleden sonrası
-    gun_yayin_saatleri: {"2026-11-25": ["15:00", "23:00"], "2026-11-26": ["15:00", "17:00", "23:00"]}  # erken paylaşım günleri (kullanıcı isteği)
+    gun_yayin_saatleri: {"2026-11-25": ["15:00", "23:00"], "2026-11-26": ["15:00", "17:00", "23:00"], "2026-11-27": ["15:00", "17:00", "23:00"]}  # erken paylaşım günleri (kullanıcı isteği)
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 28        # Bilim ve Teknoloji
     kelime_araligi: [65, 100]   # 25-40 sn: tamamlanma oranı için kısa tut
@@ -69,7 +69,7 @@ kanallar:
     ses_hizi: 1.1
     gunluk_video: 2  # kapasite: tek Google projesi günde ~6 yükleme (10.000 birim / 1.600); toplam 5
     yayin_saatleri: ["19:00", "02:00"]  # Avrupa akşamı + ABD akşamı
-    gun_yayin_saatleri: {"2026-11-26": ["02:00", "13:00", "19:00"]}  # erken paylaşım (kullanıcı isteği)
+    gun_yayin_saatleri: {"2026-11-26": ["02:00", "13:00", "19:00"], "2026-11-27": ["02:00", "13:00", "19:00"]}  # erken paylaşım (kullanıcı isteği)
     saat_dilimi: Europe/Istanbul
     youtube_kategori: 20        # Oyun
     kelime_araligi: [60, 95]    # 25-40 sn
@@ -77,7 +77,7 @@ kanallar:
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
     klip_orani: 0               # 2026-11-26 durduruldu: Dom kampanyası gönderime kapalı, ödeme Discord şartlı (TR'de kapalı)
     resmi_havuz: true           # görseller: Rockstar resmi medyası (gorseller/gta_resmi); Openverse/AI yalnız yedek
-    resmi_konu_orani: 0.6       # ağırlık: resmi görüntülü 'en önemli yerler/karakterler'; kalanı kaynaklı haber
+    resmi_konu_orani: 0.25      # analytics 26.11: karakter formatı ort. 3 izlenme, haber/ipucu 500-900 -> az kullan
     hedef_gorsel: 12            # resmi havuzdan farklı görsel sayısı (tekrar olmasın)
     ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne
     ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"
@@ -89,7 +89,7 @@ kanallar:
       google_trends: {bolge: US}
       reddit: [GTA6, GTA, gtaonline]
     formatlar:
-      - "GTA news + my take"
+      - "big number or milestone, real or hype?"
       - "hidden detail you missed"
       - "quick tip that saves you time"
       - "rumor check: real or fake?"

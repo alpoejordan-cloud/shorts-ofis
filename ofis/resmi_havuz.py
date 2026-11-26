@@ -113,6 +113,7 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
     """Senaryo/konuda geçen yer ve kişilerin resmi görsellerini seçer; her sahneye ekranda gösterilecek
     etiketi ekler. En fazla bir kısa resmi klip (sessiz, ≤3 sn) eklenir."""
     rnd = random.Random(tohum)
+    son_kullanilan = set(son_kullanilanlar(klasor))
     ogeler = havuz(klasor)
     if not ogeler:
         return []
@@ -125,6 +126,7 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
     for grup in (eslesen, genel, yerler, resimler):
         aday = [o for o in grup if o not in secilen]
         rnd.shuffle(aday)
+        aday.sort(key=lambda o: o["yol"] in son_kullanilan)  # son videolarda kullanılanlar sona
         # çeşitlilik: her turda her etiketten en fazla bir görsel (anılan herkes/her yer görünsün)
         sinir = max(2, round(adet * 0.6)) if grup is eslesen else adet  # eşleşen ~%60, kalanı yer görselleri
         while aday and len(secilen) < sinir:
@@ -139,6 +141,7 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
         if len(secilen) >= adet:
             break
     sahneler = [{"tur": "resim", "yol": str(KOK / o["yol"]), "etiket": _etiket_metni(o)} for o in secilen]
+    kullanildi_kaydet([o["yol"] for o in secilen], klasor)
     videolar = [o for o in ogeler if o["tur"] == "video"]
     kisiler = [o for o in videolar if "cover" not in o["etiket"].lower() and _anildi(o["etiket"], kucuk)]
     kapak = [o for o in videolar if "cover" in o["etiket"].lower()]
@@ -148,6 +151,22 @@ def sahneler_sec(metin: str, adet: int = 7, klasor: Path = KLASOR, tohum: int | 
         sahneler.insert(1, {"tur": "video", "yol": str(KOK / secim["yol"]), "bas": 0.0,
                             "en_uzun": KLIP_EN_UZUN, "etiket": etiket})
     return sahneler
+
+
+def son_kullanilanlar(klasor: Path = KLASOR) -> list[str]:
+    try:
+        return json.loads((klasor / "kullanilan.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def kullanildi_kaydet(yollar: list[str], klasor: Path = KLASOR, hafiza: int = 60) -> None:
+    """Son ~5 videoda kullanılan görseller hatırlanır; yeni video önce kullanılmamışları seçer."""
+    try:
+        liste = [y for y in son_kullanilanlar(klasor) if y not in yollar] + yollar
+        (klasor / "kullanilan.json").write_text(json.dumps(liste[-hafiza:], ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def _anildi(etiket: str, kucuk_metin: str) -> bool:

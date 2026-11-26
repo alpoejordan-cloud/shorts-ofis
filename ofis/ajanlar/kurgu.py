@@ -81,6 +81,8 @@ def kesim_plani(sahneler: list[dict[str, Any]], toplam: float, kesme: float = 2.
     if len(gercek) >= 2:  # yeterli gerçek görüntü varsa düz renk sahnelerini kullanma
         sahneler = gercek
     n = max(1, round(toplam / kesme))
+    if len(sahneler) < n:  # aynı görsel tekrar etmesin: önce kesimleri uzat (en fazla 4,5 sn), sonra tekrar et
+        n = max(len(sahneler), round(toplam / 4.5), 1)
     gorunen = toplam / n
     plan = []
     son_hareket = None

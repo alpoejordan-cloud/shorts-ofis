@@ -274,6 +274,36 @@ def oyun_kaydi_sahneleri(k: dict[str, Any], tohum: str, adet: int | None = None)
     return sahneler
 
 
+def gorsel_guc(yol: str) -> float:
+    """Resmin ilk saniye gücü: renk canlılığı (Hasler-Süsstrunk) x netlik (Laplace varyansı). OpenCV yoksa 0."""
+    try:
+        import cv2
+        import numpy as np
+
+        img = cv2.imread(yol)
+        if img is None:
+            return 0.0
+        img = cv2.resize(img, (320, int(320 * img.shape[0] / max(img.shape[1], 1))))
+        b, g, r = [c.astype("float") for c in cv2.split(img)]
+        rg, yb = np.abs(r - g), np.abs(0.5 * (r + g) - b)
+        renk = np.sqrt(rg.std() ** 2 + yb.std() ** 2) + 0.3 * np.sqrt(rg.mean() ** 2 + yb.mean() ** 2)
+        netlik = cv2.Laplacian(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), cv2.CV_64F).var()
+        return float(renk * np.log1p(netlik))
+    except Exception:
+        return 0.0
+
+
+def en_guclu_basa(sahneler: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """İlk 1 saniyede en çarpıcı görsel görünsün: resimler arasından en güçlüsü başa alınır (klip/video sırası korunur)."""
+    if not sahneler or sahneler[0].get("tur") == "video" and sahneler[0].get("en_uzun", 0) > 5:
+        return sahneler  # kampanya/yayıncı klibi: sıraya dokunma
+    adaylar = [(gorsel_guc(s["yol"]), n) for n, s in enumerate(sahneler) if s.get("tur") == "resim" and s.get("yol")]
+    if not adaylar:
+        return sahneler
+    _, en_iyi = max(adaylar)
+    return [sahneler[en_iyi]] + [s for n, s in enumerate(sahneler) if n != en_iyi]
+
+
 def topla(is_: Is, k: dict[str, Any]) -> None:
     sahneler: list[dict[str, Any]] = []
     lisans: list[str] = []
@@ -404,5 +434,6 @@ def topla(is_: Is, k: dict[str, Any]) -> None:
             ".env içine PEXELS_API_ANAHTARI veya PIXABAY_API_ANAHTARI ekle ya da "
             f"gorseller/{k['id']}/ klasörüne görsel koy."
         )
+    sahneler = en_guclu_basa(sahneler)
     is_.veri.update({"sahneler": sahneler, "lisanslar": lisans})
     log.info("%s: %d sahne hazır", is_.id, len(sahneler))

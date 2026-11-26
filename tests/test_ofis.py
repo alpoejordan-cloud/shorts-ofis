@@ -210,7 +210,7 @@ def test_acik_resim_kredisi_aciklamaya_eklenir(monkeypatch, tmp_path):
 def test_kesim_plani_sik_kesme_ve_sure():
     sahneler = [{"tur": "desen"}, {"tur": "resim", "yol": "a.jpg"}]
     plan = kurgu.kesim_plani(sahneler, 36.0, 2.4, tohum="x")
-    assert len(plan) == 15
+    assert len(plan) == 8  # 2 kaynak: tekrar azalsın diye kesim ~4,5 sn (36/4,5)
     gorunen = sum(p["sure"] for p in plan) - kurgu.GECIS * (len(plan) - 1)
     assert abs(gorunen - 36.0) < 1e-6
     assert all(a["hareket"] != b["hareket"] for a, b in zip(plan, plan[1:]))
@@ -278,7 +278,7 @@ def test_acilis_notu_ilk_iki_saniyede(tmp_path):
 
 def test_kampanya_yayincilari_izin_belgesiyle_gelir():
     adlar = {y["ad"]: y for y in gorsel.izinli_yayincilar()}
-    assert "Dasgasd3m (Dom)" in adlar and "Bobby VanRiper" not in adlar  # Bobby durduruldu
+    assert "Dasgasd3m (Dom)" not in adlar and "Bobby VanRiper" not in adlar  # ikisi de durduruldu (2026-11-26)
     assert all(y["izin_belgesi"].startswith("https://contentrewards.com/") for y in adlar.values())
     assert all(y.get("yayinci_sesi") for y in adlar.values())
 
@@ -783,3 +783,46 @@ def test_kota_gunu_pasifik_gece_yarisi():
     tr = ZoneInfo("Europe/Istanbul")
     assert kota_gunu(datetime(2026, 11, 26, 10, 59, tzinfo=tr)) == "2026-11-25"
     assert kota_gunu(datetime(2026, 11, 26, 11, 1, tzinfo=tr)) == "2026-11-26"
+
+
+def test_seo_baslik_hic_kelime_silmez():
+    import re as _r
+    from ofis.ajanlar import seo
+    ornekler = ["Who is Jason Duval in GTA 6?", "Did GTA 6 Break 39M Players?", "Why Palworld went quiet during GTA 6",
+                "GTA VI map leak explained", "The weapon everyone misses early", "Rockstar's new update is huge",
+                "Did the US government get hacked?", "Uber & Nuro test driverless cars.", "OpenAI agents fail tasks"]
+    for kid in ["gta_en", "teknoloji_en"]:
+        for o in ornekler:
+            cikti = seo.baslik(o + " #shorts", {"id": kid}, {"senaryo": o})
+            for kelime in _r.findall(r"[A-Za-z0-9']+", o):
+                assert kelime in cikti, (kid, o, cikti)  # başlık bozulmaz: hiçbir kelime kaybolmaz
+            assert cikti.endswith(" #shorts") and cikti.count("#shorts") == 1
+
+
+def test_zayif_kanca_reddedilir():
+    from ofis.ajanlar import senarist
+    assert senarist.zayif_kanca_mi("You didn't know this")
+    assert not senarist.zayif_kanca_mi("39 million players in one week")
+
+
+def test_kesim_plani_gorsel_tekrar_etmez():
+    from ofis.ajanlar import kurgu
+    sahneler = [{"tur": "resim", "yol": f"{n}.jpg"} for n in range(8)]
+    plan = kurgu.kesim_plani(sahneler, 34.0, 2.5)
+    yollar = [p["sahne"]["yol"] for p in plan]
+    assert len(yollar) == len(set(yollar))
+
+
+def test_en_guclu_gorsel_basa(monkeypatch):
+    from ofis.ajanlar import gorsel
+    monkeypatch.setattr(gorsel, "gorsel_guc", lambda yol: {"a": 1.0, "b": 9.0, "c": 3.0}[yol])
+    s = gorsel.en_guclu_basa([{"tur": "resim", "yol": y} for y in "abc"])
+    assert [x["yol"] for x in s] == ["b", "a", "c"]
+
+
+def test_resmi_havuz_son_kullanilanlari_sona_atar(tmp_path):
+    from ofis import resmi_havuz
+    _sahte_havuz(tmp_path)
+    ilk = [x["yol"] for x in resmi_havuz.sahneler_sec("Vice City", 4, klasor=tmp_path, tohum=1)]
+    ikinci = [x["yol"] for x in resmi_havuz.sahneler_sec("Vice City", 4, klasor=tmp_path, tohum=1)]
+    assert len(set(ilk) & set(ikinci)) < 4

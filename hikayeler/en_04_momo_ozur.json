@@ -1,0 +1,107 @@
+{
+ "tema": "saying sorry and making up",
+ "baslik": "Momo the Bear Knocks Over Ziggy's Tower",
+ "kanca_metni": "Bump! The tower fell!",
+ "ders": "A kind sorry fixes friendships",
+ "aciklama": "Momo bumps into Ziggy's tall block tower by accident and learns how a kind sorry and a helping hand make things right.",
+ "etiketler": [
+  "saying sorry for kids",
+  "friendship story",
+  "bear cartoon",
+  "fox cartoon",
+  "social emotional learning"
+ ],
+ "sahneler": [
+  {
+   "yer": "oda",
+   "karakterler": [
+    "momo",
+    "ziggy"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Ziggy built the tallest block tower in the whole cozy room.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "ziggy",
+     "metin": "Look, Momo! It almost touches the ceiling!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "Momo leaned closer to look, and... bump! The tower tumbled down.",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "oda",
+   "karakterler": [
+    "momo",
+    "ziggy"
+   ],
+   "satirlar": [
+    {
+     "kim": "ziggy",
+     "metin": "Oh no! My tower! It took me all morning!",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "momo",
+     "metin": "I didn't mean to, but I still feel very sorry.",
+     "duygu": "uzgun"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "momo",
+    "luna"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Momo went outside and told Luna what had happened.",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "luna",
+     "metin": "Hoo. When we make a mistake, saying sorry can mend a heart.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "momo",
+     "metin": "Then I will say sorry, and help build it again!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "oda",
+   "karakterler": [
+    "momo",
+    "ziggy"
+   ],
+   "satirlar": [
+    {
+     "kim": "momo",
+     "metin": "I'm sorry, Ziggy. Can we build an even taller tower together?",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "ziggy",
+     "metin": "Yes! Two builders are better than one!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "A kind sorry and a helping hand can make friends smile again.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

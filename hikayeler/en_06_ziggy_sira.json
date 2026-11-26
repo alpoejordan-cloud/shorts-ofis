@@ -1,0 +1,104 @@
+{
+ "tema": "waiting patiently for a turn",
+ "baslik": "Ziggy the Fox Learns to Wait for His Turn",
+ "kanca_metni": "Me first! Me first!",
+ "ders": "Taking turns lets everyone have fun",
+ "aciklama": "There is only one leaf boat by the pond, and Ziggy wants it right now. Luna shows him a fun way to wait. A story about taking turns.",
+ "etiketler": [
+  "taking turns",
+  "patience for kids",
+  "fox cartoon",
+  "pond story",
+  "toddler manners"
+ ],
+ "sahneler": [
+  {
+   "yer": "gol",
+   "karakterler": [
+    "ziggy",
+    "bloop",
+    "pip"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "By the pond, there was one little leaf boat for everyone.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "ziggy",
+     "metin": "Me first! Me first! I want to sail right now!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "bloop",
+     "metin": "But Ziggy, Pip has been waiting since this morning.",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "gol",
+   "karakterler": [
+    "ziggy",
+    "pip"
+   ],
+   "satirlar": [
+    {
+     "kim": "pip",
+     "metin": "It's okay to want a turn. We can take turns, one by one.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "ziggy",
+     "metin": "Waiting is so hard! My paws can't stay still!",
+     "duygu": "uzgun"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "ziggy",
+    "luna"
+   ],
+   "satirlar": [
+    {
+     "kim": "luna",
+     "metin": "Hoo! While you wait, try counting slowly to ten with me.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "One, two, three... Ziggy counted, and the waiting felt shorter.",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "gol",
+   "karakterler": [
+    "ziggy",
+    "pip",
+    "bloop"
+   ],
+   "satirlar": [
+    {
+     "kim": "pip",
+     "metin": "Your turn, Ziggy! Sail across the pond and wave to us!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "ziggy",
+     "metin": "Wheee! Waiting made my turn feel extra special!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "When we take turns, everyone gets to have fun.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

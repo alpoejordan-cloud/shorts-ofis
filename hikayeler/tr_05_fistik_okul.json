@@ -1,0 +1,102 @@
+{
+ "tema": "okulun ilk gününde cesur olmak",
+ "baslik": "Fıstık'ın Okulda İlk Günü | Çocuk Masalı",
+ "kanca_metni": "Karnımda kelebekler var!",
+ "ders": "Cesaret merhaba demektir",
+ "aciklama": "Fıstık okulun ilk gününde heyecanlanır, sonra yalnız oturan Boncuk'a merhaba diyerek yeni bir arkadaş edinir. Okula başlayan çocuklar için sıcak bir masal.",
+ "etiketler": [
+  "okulun ilk günü",
+  "anaokulu",
+  "uyum",
+  "sincap masalı",
+  "arkadaşlık"
+ ],
+ "sahneler": [
+  {
+   "yer": "oda",
+   "karakterler": [
+    "fistik",
+    "pamuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "fistik",
+     "metin": "Bugün okulun ilk günü Pamuk. Karnımda kelebekler uçuşuyor!",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "pamuk",
+     "metin": "Benim de ilk günüm böyleydi. Sonra çok eğlenmiştim!",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "fistik",
+    "bilge"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Çayırdaki okulda Bilge öğretmen herkesi gülümseyerek karşıladı.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "bilge",
+     "metin": "Hoş geldin Fıstık! Bugün resim yapıp şarkı söyleyeceğiz.",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Resim ve şarkı mı? Bu kulağa çok güzel geliyor!",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "bahce",
+   "karakterler": [
+    "fistik",
+    "boncuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Fıstık, çitin yanında tek başına oturan küçük bir kedi gördü.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Merhaba, ben Fıstık. Benimle resim yapar mısın?",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "boncuk",
+     "metin": "Olur! Ben Boncuk, benim de bugün ilk günüm!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "fistik",
+    "boncuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "fistik",
+     "metin": "Yeni bir arkadaş buldum, kocaman bir güneş çizdik!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "Cesaret bazen sadece yeni birine merhaba demektir.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

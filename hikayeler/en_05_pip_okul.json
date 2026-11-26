@@ -1,0 +1,103 @@
+{
+ "tema": "being brave on the first day of school",
+ "baslik": "Pip the Bunny's First Day at Meadow School",
+ "kanca_metni": "Pip's tummy feels wiggly!",
+ "ders": "Being brave can be saying hello",
+ "aciklama": "Pip feels nervous on the first day of school, then makes a new friend by saying hello. A gentle story for children starting school.",
+ "etiketler": [
+  "first day of school",
+  "starting kindergarten",
+  "bunny cartoon",
+  "making friends story",
+  "brave kids"
+ ],
+ "sahneler": [
+  {
+   "yer": "oda",
+   "karakterler": [
+    "pip",
+    "momo"
+   ],
+   "satirlar": [
+    {
+     "kim": "pip",
+     "metin": "Momo, today is my first day at Meadow School. My tummy feels wiggly!",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "momo",
+     "metin": "Mine felt wiggly too on my first day. That's okay!",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "pip",
+    "luna"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "At Meadow School, Teacher Luna was waiting with a warm smile.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "luna",
+     "metin": "Hoo! Welcome, Pip! We are going to paint and sing today.",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "pip",
+     "metin": "Paint and sing? Maybe school is not so wiggly after all.",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "bahce",
+   "karakterler": [
+    "pip",
+    "bloop"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Pip saw a little frog sitting all alone by the fence.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "pip",
+     "metin": "Hi, I'm Pip. Do you want to paint with me?",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "bloop",
+     "metin": "Yes, please! I'm Bloop, and it's my first day too!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "pip",
+    "bloop",
+    "momo"
+   ],
+   "satirlar": [
+    {
+     "kim": "pip",
+     "metin": "Momo, I made a new friend, and we painted a big sun!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "Being brave can be small, like saying hello to someone new.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

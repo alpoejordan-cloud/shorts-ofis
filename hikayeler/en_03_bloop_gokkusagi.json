@@ -1,0 +1,103 @@
+{
+ "tema": "learning colors of the rainbow",
+ "baslik": "Bloop the Frog Finds a Rainbow in a Puddle",
+ "kanca_metni": "Colors in a puddle?!",
+ "ders": "The world is full of colors",
+ "aciklama": "After the rain, Bloop and Pip find a rainbow and look for every color in the garden. A cheerful story for learning colors.",
+ "etiketler": [
+  "learn colors",
+  "rainbow for kids",
+  "frog cartoon",
+  "colors song for toddlers",
+  "preschool learning"
+ ],
+ "sahneler": [
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "bloop",
+    "pip"
+   ],
+   "satirlar": [
+    {
+     "kim": "bloop",
+     "metin": "Splash! Pip, after the rain, the puddles are full of colors!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "pip",
+     "metin": "Colors in puddles? Show me, Bloop!",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "gol",
+   "karakterler": [
+    "bloop",
+    "pip"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Bloop pointed up, and there it was, a big rainbow in the sky.",
+     "duygu": "saskin"
+    },
+    {
+     "kim": "pip",
+     "metin": "Red, orange, yellow! I can see them shining in the water!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "bloop",
+     "metin": "And green like me! Then blue, and purple too!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "bahce",
+   "karakterler": [
+    "pip",
+    "bloop",
+    "luna"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "In the garden, they looked for each color on the flowers.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "luna",
+     "metin": "Hoo! Can you find a flower as purple as my feathers?",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "pip",
+     "metin": "There it is! And a yellow one, just like the sun!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "pip",
+    "bloop"
+   ],
+   "satirlar": [
+    {
+     "kim": "bloop",
+     "metin": "Rainy days make puddles, and puddles make rainbows to find!",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "When we look closely, the world is full of beautiful colors.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

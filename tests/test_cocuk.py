@@ -110,3 +110,25 @@ def test_onar_konusani_sahneye_ekler():
     h["sahneler"][1]["satirlar"][0]["kim"] = "Narrator"
     assert hikaye.dogrula(hikaye.onar(h, k), k, {}) == []
     assert h["sahneler"][0]["karakterler"] == ["pip", "momo"]
+
+
+def test_gemini_kota_dolunca_siradaki_model(monkeypatch, tmp_path):
+    from ofis import gemini
+
+    monkeypatch.setattr(gemini, "_sayac_yolu", lambda: tmp_path / "s.json")
+    monkeypatch.setattr(gemini, "_kapali_kadar", 0.0)
+    monkeypatch.setattr(gemini, "_dolu_modeller", {})
+    monkeypatch.setattr(gemini, "_calisan_model", None)
+    monkeypatch.setenv("GEMINI_API_ANAHTARI", "x")
+    denenen = []
+
+    class Modeller:
+        def generate_content(self, model, contents, config):
+            denenen.append(model)
+            if model != gemini.YEDEK_MODELLER[-1]:
+                raise RuntimeError("429 RESOURCE_EXHAUSTED GenerateRequestsPerDayPerProjectPerModel")
+            return type("C", (), {"text": '{"ok": true}'})()
+
+    monkeypatch.setattr(gemini, "_istemci", type("I", (), {"models": Modeller()})())
+    assert gemini.sor_json("s", "k") == {"ok": True}
+    assert denenen == gemini.YEDEK_MODELLER and gemini._kapali_kadar == 0.0

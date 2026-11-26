@@ -37,6 +37,14 @@ def _model_yok_mu(e: Exception) -> bool:
     return "404" in m or "NOT_FOUND" in m or "503" in m or "UNAVAILABLE" in m
 
 
+def _kota_mi(e: Exception) -> bool:
+    m = str(e).lower()
+    return "429" in m or "quota" in m or "resource_exhausted" in m
+
+
+_dolu_modeller: dict[str, float] = {}  # günlük kotası dolan model -> bu saate kadar atlanır
+
+
 def _sayac_yolu():
     from .cekirdek import VERI
 
@@ -96,6 +104,8 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.3) -> Any | None:
                                            response_mime_type="application/json")
         son_hata: Exception | None = None
         for model in _model_sirasi():
+            if _dolu_modeller.get(model, 0) > time.time():
+                continue
             try:
                 _say()
                 from .olay import cagiran_gorev, calisiyor
@@ -104,6 +114,11 @@ def sor_json(sistem: str, kullanici: str, sicaklik: float = 0.3) -> Any | None:
                     cevap = _istemci.models.generate_content(model=model, contents=kullanici, config=ayar)
             except Exception as e:
                 if _model_yok_mu(e):  # model kaldırılmış ya da yoğun: sıradakini dene
+                    son_hata = e
+                    continue
+                if _kota_mi(e):  # bu modelin günlük kotası doldu: 1 saat atla, sıradaki modeli dene
+                    _dolu_modeller[model] = time.time() + 3600
+                    log.info("Gemini %s kotası doldu, sıradaki model deneniyor", model)
                     son_hata = e
                     continue
                 raise

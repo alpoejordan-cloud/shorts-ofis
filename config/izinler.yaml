@@ -23,6 +23,7 @@ izinli_yayincilar:
 
   # Content Rewards kampanyaları (2026-11-24 katılındı). İzin belgesi = kampanya sayfası.
   - ad: "Dasgasd3m (Dom)"
+    aktif: false                # 2026-11-26 durduruldu: gönderimler kapalı, ödeme RUCKUS Discord şartlı (TR'de kapalı)
     kanal_url: "https://kick.com/dasgasd3m"
     agirlik: 3                  # öncelikli kampanya
     izin_tarihi: "2026-11-24"

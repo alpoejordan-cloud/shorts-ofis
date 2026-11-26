@@ -75,9 +75,9 @@ kanallar:
     kelime_araligi: [60, 95]    # 25-40 sn
     otomatik_onay: true         # kullanıcı açtı 2026-11-25; kampanya klipleri yine masaya düşer
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
-    klip_orani: 0.5             # videoların ~yarısı izinli kampanya klibi (Dom; klip varsa); masada bekler
+    klip_orani: 0               # 2026-11-26 durduruldu: Dom kampanyası gönderime kapalı, ödeme Discord şartlı (TR'de kapalı)
     resmi_havuz: true           # görseller: Rockstar resmi medyası (gorseller/gta_resmi); Openverse/AI yalnız yedek
-    resmi_konu_orani: 0.5       # videoların ~yarısı 'en önemli yerler/karakterler' (kaynak: rockstargames.com/VI)
+    resmi_konu_orani: 0.6       # ağırlık: resmi görüntülü 'en önemli yerler/karakterler'; kalanı kaynaklı haber
     hedef_gorsel: 12            # resmi havuzdan farklı görsel sayısı (tekrar olmasın)
     ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne
     ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"

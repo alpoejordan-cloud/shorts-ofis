@@ -341,7 +341,7 @@ def test_seo_ana_anahtar_hep_basta():
     from ofis.ajanlar import seo
 
     k = cekirdek.kanal("gta_en")
-    assert seo.baslik("Bobby VanRiper GTA VI Shark #shorts", k) == "GTA 6: Bobby VanRiper Shark #shorts"
+    assert seo.baslik("Bobby VanRiper GTA VI Shark #shorts", k) == "Bobby VanRiper GTA VI Shark #shorts"
     assert seo.baslik("GTA 6 trailer breakdown", k) == "GTA 6 trailer breakdown #shorts"
 
 
@@ -727,7 +727,12 @@ def test_seo_baslik_cumleyi_bozmaz():
     from ofis.ajanlar import seo
     k = {"id": "gta_en"}
     assert seo.baslik("Did GTA 6 Break 39M Players? #shorts", k) == "Did GTA 6 Break 39M Players? #shorts"
-    assert seo.baslik("Why Palworld went quiet during GTA 6 #shorts", k).startswith("GTA 6: Why Palworld")
+    assert seo.baslik("Why Palworld went quiet during GTA 6 #shorts", k) == "Why Palworld went quiet during GTA 6 #shorts"
+    assert seo.baslik("Who is Jason Duval in GTA 6? #shorts", k) == "Who is Jason Duval in GTA 6? #shorts"
+    assert seo.baslik("Lucia's backstory explained", k) == "GTA 6: Lucia's backstory explained #shorts"
+    t = {"id": "teknoloji_en"}
+    assert seo.baslik("Did the US government get hacked?", t, {"senaryo": "Hackers breached a bureau."}) == "Did the US government get hacked? #shorts"
+    assert seo.baslik("New agents everywhere", t, {"senaryo": "OpenAI launched AI agents."}).startswith("AI: ")
 
 
 def _sahte_havuz(tmp_path):

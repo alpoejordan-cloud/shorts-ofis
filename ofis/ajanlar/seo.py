@@ -43,18 +43,25 @@ def _kes(metin: str, sinir: int) -> str:
     return kesik or metin[:sinir]
 
 
-def baslik(ham: str, k: dict[str, Any]) -> str:
+AI_KELIMELERI = re.compile(r"\b(AI|A\.I\.|artificial intelligence|ChatGPT|OpenAI|Gemini|Claude|LLM|chatbot|"
+                           r"machine learning|neural|agent|agents|Copilot)\b", re.I)
+
+
+def baslik(ham: str, k: dict[str, Any], veri: dict[str, Any] | None = None) -> str:
+    """SEO başlığı. Kural: başlığın içinden HİÇBİR kelime silinmez (cümle bozulmasın).
+    Ana anahtar kelime başlığın herhangi bir yerinde varsa başlık aynen kalır; yoksa başa "Anahtar: " eklenir.
+    Tech kanalında "AI:" öneki yalnızca konu gerçekten yapay zekaysa eklenir."""
     ana = ayar(k)["ana_anahtar"]
     govde = re.sub(r"#shorts", "", ham, flags=re.IGNORECASE).strip(" -|")
     govde = re.sub(r"\s+", " ", govde)
-    baslar = [ana] + list(ayar(k).get("kabul_edilen_baslar") or [])  # konuya uymayan önek zorlanmasın
-    ilk_kelimeler = " ".join(govde.split()[:5]).lower()  # anahtar zaten başlığın başındaysa (ilk 5 kelime) cümle bozulmasın
-    if ana and not any(x.lower() in ilk_kelimeler for x in baslar if x):
-        # ana anahtar kelime her zaman başta: başlıktaki tekrarı (ve GTA 6 için "GTA VI") çıkarıp başa al
-        esler = [re.escape(ana)] + ([r"GTA\s*VI\b", r"GTA6\b"] if ana == "GTA 6" else [])
-        for es in esler:
-            govde = re.sub(es, "", govde, flags=re.IGNORECASE)
-        govde = re.sub(r"\s+", " ", govde).strip(" -:|,")
+    esler = [re.escape(ana)] + ([r"GTA\s*VI\b", r"GTA\s*6\b"] if ana == "GTA 6" else []) if ana else []
+    esler += [re.escape(x) for x in ayar(k).get("kabul_edilen_baslar") or []]
+    var = any(re.search(rf"\b{es}", govde, flags=re.IGNORECASE) for es in esler)
+    konu_uygun = True
+    if ana == "AI" and veri is not None:
+        metin = " ".join(str(veri.get(a, "")) for a in ("baslik", "konu", "senaryo"))
+        konu_uygun = bool(AI_KELIMELERI.search(metin))
+    if ana and not var and konu_uygun:
         govde = f"{ana}: {govde}" if govde else ana
     return _kes(govde, BASLIK_SINIR - len(" #shorts")) + " #shorts"
 
@@ -118,7 +125,7 @@ def etiketler(veri: dict[str, Any], k: dict[str, Any]) -> list[str]:
 
 def uygula(veri: dict[str, Any], k: dict[str, Any]) -> dict[str, Any]:
     """YouTube snippet alanlarını döner (title, description, tags, dil, kategori)."""
-    b = baslik(str(veri.get("baslik", "")), k)
+    b = baslik(str(veri.get("baslik", "")), k, veri)
     return {
         "title": b,
         "description": aciklama(veri, k, b),

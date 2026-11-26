@@ -97,6 +97,16 @@ def test_kisa_animasyon(monkeypatch):
 def test_sirada_bekleyen_hazir_hikayeler(monkeypatch):
     k = cekirdek.kanal("cocuk_tr")
     monkeypatch.setattr(hikaye, "gemini_denetim", lambda h, k: None)
-    ilk = hikaye.sirada_bekleyen_hikayeler(k, 5)
+    ilk = hikaye.sirada_bekleyen_hikayeler(k, 50)
     assert len(ilk) >= 2 and all(i.durum == "senaryo" and i.veri["hazir_dosya"].startswith("tr_") for i in ilk)
-    assert hikaye.sirada_bekleyen_hikayeler(k, 5) == []  # aynı dosya ikinci kez kullanılmaz
+    assert hikaye.sirada_bekleyen_hikayeler(k, 50) == []  # aynı dosya ikinci kez kullanılmaz
+
+
+def test_onar_konusani_sahneye_ekler():
+    k = cekirdek.kanal("cocuk_en")
+    h = _hikaye()
+    h["sahneler"][0]["karakterler"] = ["pip"]
+    h["sahneler"][0]["satirlar"][2]["kim"] = "Momo"
+    h["sahneler"][1]["satirlar"][0]["kim"] = "Narrator"
+    assert hikaye.dogrula(hikaye.onar(h, k), k, {}) == []
+    assert h["sahneler"][0]["karakterler"] == ["pip", "momo"]

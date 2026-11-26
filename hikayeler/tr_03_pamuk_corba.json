@@ -1,0 +1,103 @@
+{
+ "tema": "yeni bir sebzeyi denemek",
+ "baslik": "Pamuk ve Turuncu Çorba | Çocuk Masalı",
+ "kanca_metni": "Bu turuncu çorba ne?",
+ "ders": "Yeni tatları denemek güzeldir",
+ "aciklama": "Pamuk ilk kez havuç çorbası görür ve tatmaya çekinir. Fıstık'ın cesaretlendirmesiyle küçük bir kaşık dener. Yeni yemekleri denemeyi anlatan bir masal.",
+ "etiketler": [
+  "sebze yemek",
+  "havuç",
+  "tavşan masalı",
+  "yemek yemeyen çocuk",
+  "okul öncesi masal"
+ ],
+ "sahneler": [
+  {
+   "yer": "oda",
+   "karakterler": [
+    "pamuk",
+    "fistik"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Akşam yemeğinde Pamuk'un tabağında turuncu bir çorba vardı.",
+     "duygu": "saskin"
+    },
+    {
+     "kim": "pamuk",
+     "metin": "Bu ne? Ben bunu daha önce hiç tatmadım ki!",
+     "duygu": "saskin"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Havuç çorbası! Küçük bir kaşık denemeye ne dersin?",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "oda",
+   "karakterler": [
+    "pamuk",
+    "fistik"
+   ],
+   "satirlar": [
+    {
+     "kim": "pamuk",
+     "metin": "Ya sevmezsem? Rengi bana çok tuhaf görünüyor.",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Sevmezsen de sorun değil. Önemli olan denemek!",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "oda",
+   "karakterler": [
+    "pamuk",
+    "fistik",
+    "bilge"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Pamuk minicik bir kaşık aldı ve yavaşça tattı.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "pamuk",
+     "metin": "Hımm! Tatlı ve sıcacık! Bir kaşık daha alabilir miyim?",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "bilge",
+     "metin": "Yeni tatları denemek, yeni arkadaşlar edinmek gibidir.",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "bahce",
+   "karakterler": [
+    "pamuk",
+    "fistik"
+   ],
+   "satirlar": [
+    {
+     "kim": "pamuk",
+     "metin": "Yarın bahçeden havuç toplayıp birlikte çorba yapalım!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "Yeni bir şeyi denemek, bazen en sevdiğimiz şeyi bulmamızı sağlar.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

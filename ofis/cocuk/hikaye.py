@@ -241,28 +241,78 @@ def gemini_denetim(h: dict[str, Any], k: dict[str, Any]) -> dict[str, Any] | Non
              'JSON: {"onay": true/false, "puan": 1-10, "sorunlar": ["..."]}\n\n'
              + json.dumps(h, ensure_ascii=False))
     cevap = gemini.sor_json(sistem, istek, sicaklik=0.1)
-    if not isinstance(cevap, dict) or "onay" not in cevap:
+    if isinstance(cevap, list) and cevap and isinstance(cevap[0], dict):
+        cevap = cevap[0]
+    if not isinstance(cevap, dict):
+        log.info("Gemini çocuk denetimi cevap vermedi (hazır: %s)", gemini.hazir_mi())
         return None
-    puan = int(cevap.get("puan") or 0) if str(cevap.get("puan", "0")).isdigit() else 0
-    return {"onay": bool(cevap.get("onay")) and puan >= 7, "puan": puan,
-            "sorunlar": [str(x) for x in cevap.get("sorunlar", [])][:6], "uydurma_suphesi": []}
+    onay = cevap.get("onay", cevap.get("approved"))
+    try:
+        puan = float(cevap.get("puan", cevap.get("score", 0)) or 0)
+    except (TypeError, ValueError):
+        puan = 0.0
+    if onay is None:
+        log.info("Gemini çocuk denetimi beklenmeyen biçimde: %s", str(cevap)[:200])
+        return None
+    sorunlar = cevap.get("sorunlar", cevap.get("issues", [])) or []
+    return {"onay": bool(onay) and puan >= 7, "puan": puan,
+            "sorunlar": [str(x) for x in sorunlar][:6], "uydurma_suphesi": []}
+
+
+def onar(h: Any, k: dict[str, Any]) -> Any:
+    """Küçük modelin sık hatalarını kendiliğinden düzeltir: sahnede konuşan ama sahne listesinde olmayan
+    karakteri sahneye ekler (en fazla 3), kadroda olmayan id'leri çıkarır, duyguyu normalleştirir."""
+    if not isinstance(h, dict) or not isinstance(h.get("sahneler"), list):
+        return h
+    kadro = {str(c["id"]) for c in k.get("karakterler", [])}
+    adlar = {str(c.get("ad", c["id"])).lower(): str(c["id"]) for c in k.get("karakterler", [])}
+    for s in h["sahneler"]:
+        if not isinstance(s, dict):
+            continue
+        kar = [str(c) for c in (s.get("karakterler") or []) if str(c) in kadro]
+        for st in s.get("satirlar") or []:
+            if not isinstance(st, dict):
+                continue
+            kim = str(st.get("kim", "")).strip()
+            kim = adlar.get(kim.lower(), kim)  # "Pip" -> "pip"
+            if kim.lower() in ("narrator", "anlatıcı", "anlatici"):
+                kim = ANLATICI
+            st["kim"] = kim
+            if kim in kadro and kim not in kar and len(kar) < 3:
+                kar.append(kim)
+            if st.get("duygu") not in DUYGULAR:
+                st["duygu"] = "mutlu"
+        s["karakterler"] = kar
+    return h
+
+
+def taslak_yaz(sistem: str, kullanici: str, k: dict[str, Any], fikir: dict[str, Any], is_id: str) -> Any:
+    """Önce Gemini (varsa, daha iyi yazar), olmazsa Ollama 3 deneme; her taslak onarılıp doğrulanır."""
+    from .. import gemini
+
+    if gemini.hazir_mi():
+        h = onar(gemini.sor_json(sistem, kullanici, sicaklik=0.85), k)
+        sorun = dogrula(h, k, fikir)
+        if not sorun:
+            log.info("%s: hikaye Gemini ile yazıldı", is_id)
+            return h
+        log.info("%s: Gemini taslağı kullanılmadı (%s)", is_id, "; ".join(sorun[:3]))
+    sorunlar: list[str] = []
+    for _ in range(3):
+        h = onar(sor_json(sistem, kullanici, sicaklik=0.85), k)
+        sorunlar = dogrula(h, k, fikir)
+        if not sorunlar:
+            return h
+        log.info("%s: hikaye düzeltiliyor (%s)", is_id, "; ".join(sorunlar[:4]))
+        kullanici += "\n\nYour previous answer had problems, fix ALL of them: " + "; ".join(sorunlar[:8])
+    raise ValueError(f"Hikaye 3 denemede kurallara uymadı: {sorunlar[:4]}")
 
 
 def yaz(is_: Is, k: dict[str, Any]) -> None:
     fikir = is_.veri
     sistem, kullanici = istem(k, fikir)
-    h: Any = None
-    sorunlar: list[str] = []
-    for _ in range(3):
-        h = sor_json(sistem, kullanici, sicaklik=0.85)
-        sorunlar = dogrula(h, k, fikir)
-        if not sorunlar:
-            break
-        log.info("%s: hikaye düzeltiliyor (%s)", is_.id, "; ".join(sorunlar[:4]))
-        kullanici += "\n\nYour previous answer had problems, fix ALL of them: " + "; ".join(sorunlar[:8])
-    else:
-        raise ValueError(f"Hikaye 3 denemede kurallara uymadı: {sorunlar[:4]}")
-    cila = gemini_cila(h, k, fikir, sistem)
+    h = taslak_yaz(sistem, kullanici, k, fikir, is_.id)
+    cila = onar(gemini_cila(h, k, fikir, sistem), k)
     if cila and not dogrula(cila, k, fikir):
         h = cila
         log.info("%s: hikaye Gemini ile cilalandı", is_.id)

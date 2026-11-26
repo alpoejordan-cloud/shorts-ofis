@@ -1,0 +1,102 @@
+{
+ "tema": "özür dileyip barışmak",
+ "baslik": "Boncuk Özür Diliyor | Kumdan Kale Masalı",
+ "kanca_metni": "Hop! Kumdan kale gitti!",
+ "ders": "İçten bir özür arkadaşlığı onarır",
+ "aciklama": "Boncuk koşarken Zıpzıp'ın kumdan kalesine basar. Bilge'nin sözüyle özür diler ve birlikte daha büyük bir kale yaparlar. Özür dilemeyi anlatan bir masal.",
+ "etiketler": [
+  "özür dilemek",
+  "kumdan kale",
+  "kedi masalı",
+  "değerler eğitimi",
+  "sahil masalı"
+ ],
+ "sahneler": [
+  {
+   "yer": "sahil",
+   "karakterler": [
+    "zipzip",
+    "boncuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Zıpzıp sahilde kocaman, kuleli bir kumdan kale yaptı.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "zipzip",
+     "metin": "Bak Boncuk! Tepesine bir de deniz kabuğu koydum!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "Boncuk koşarak geldi ve hop! Kalenin üstüne basıverdi.",
+     "duygu": "saskin"
+    }
+   ]
+  },
+  {
+   "yer": "sahil",
+   "karakterler": [
+    "zipzip",
+    "boncuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "zipzip",
+     "metin": "Eyvah! Kale yıkıldı! Bütün sabah onu yapmıştım.",
+     "duygu": "uzgun"
+    },
+    {
+     "kim": "boncuk",
+     "metin": "Bilerek yapmadım ama şimdi çok üzüldüm.",
+     "duygu": "uzgun"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "boncuk",
+    "bilge"
+   ],
+   "satirlar": [
+    {
+     "kim": "bilge",
+     "metin": "Bir hata yaptığımızda özür dilemek, kırılan kalpleri onarır.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "boncuk",
+     "metin": "O zaman özür dileyip kaleyi yeniden yapmasına yardım edeceğim!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "sahil",
+   "karakterler": [
+    "zipzip",
+    "boncuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "boncuk",
+     "metin": "Özür dilerim Zıpzıp. Birlikte daha büyük bir kale yapalım mı?",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "zipzip",
+     "metin": "Olur! İki kişi bir kişiden daha hızlı yapar!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "anlatici",
+     "metin": "İçten bir özür ve yardım eli, arkadaşları yeniden gülümsetir.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

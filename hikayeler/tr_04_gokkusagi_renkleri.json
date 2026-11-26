@@ -1,0 +1,105 @@
+{
+ "tema": "gökkuşağının renklerini öğrenmek",
+ "baslik": "Fıstık ve Zıpzıp Gökkuşağının Renklerini Sayıyor",
+ "kanca_metni": "Gökyüzünde kocaman gökkuşağı!",
+ "ders": "Dünya rengarenktir",
+ "aciklama": "Yağmurdan sonra çıkan gökkuşağında Fıstık ve arkadaşları renkleri tek tek sayar ve bahçede aynı renkte çiçekler arar. Renkleri öğreten eğlenceli bir masal.",
+ "etiketler": [
+  "renkleri öğreniyorum",
+  "gökkuşağı",
+  "eğitici çizgi film",
+  "renkler",
+  "okul öncesi eğitim"
+ ],
+ "sahneler": [
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "fistik",
+    "zipzip"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Yağmur dindi ve gökyüzünde kocaman bir gökkuşağı belirdi.",
+     "duygu": "saskin"
+    },
+    {
+     "kim": "zipzip",
+     "metin": "Vay canına! Ne kadar çok renk var!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Hadi renkleri tek tek sayalım Zıpzıp!",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "fistik",
+    "zipzip",
+    "bilge"
+   ],
+   "satirlar": [
+    {
+     "kim": "bilge",
+     "metin": "Önce kırmızı, sonra turuncu ve sarı geliyor.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "zipzip",
+     "metin": "Yeşil de var! Tıpkı benim gibi yemyeşil!",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "fistik",
+     "metin": "Sonra mavi ve mor! Hepsi yan yana duruyor.",
+     "duygu": "mutlu"
+    }
+   ]
+  },
+  {
+   "yer": "bahce",
+   "karakterler": [
+    "fistik",
+    "zipzip",
+    "pamuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Arkadaşlar bahçede aynı renkte çiçekler aramaya başladı.",
+     "duygu": "mutlu"
+    },
+    {
+     "kim": "pamuk",
+     "metin": "Ben mor bir çiçek buldum! Sen hangisini buldun?",
+     "duygu": "heyecanli"
+    },
+    {
+     "kim": "zipzip",
+     "metin": "Ben de sarı bir çiçek! Güneş gibi parlıyor!",
+     "duygu": "heyecanli"
+    }
+   ]
+  },
+  {
+   "yer": "cayir",
+   "karakterler": [
+    "fistik",
+    "zipzip",
+    "pamuk"
+   ],
+   "satirlar": [
+    {
+     "kim": "anlatici",
+     "metin": "Etrafımıza dikkatle bakınca dünya rengarenk bir resim gibi görünür.",
+     "duygu": "mutlu"
+    }
+   ]
+  }
+ ]
+}

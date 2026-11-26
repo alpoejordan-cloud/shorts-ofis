@@ -325,7 +325,11 @@ def muzik_sec(k: dict[str, Any]) -> str | None:
     klasor = KOK / "muzik" / k.get("muzik_klasoru", k["id"])
     if not klasor.exists():
         klasor = KOK / "muzik"
-    parcalar = [p for p in klasor.glob("*") if p.suffix.lower() in {".mp3", ".wav", ".m4a", ".ogg"}]
+    # Content ID'ye kayıtlı parçalar (lisanslı olsa da hak talebi alır) kullanılmaz
+    engel_dosyasi = KOK / "muzik" / "content_id_engelli.txt"
+    engelli = set(engel_dosyasi.read_text(encoding="utf-8").split()) if engel_dosyasi.exists() else set()
+    parcalar = [p for p in klasor.glob("*") if p.suffix.lower() in {".mp3", ".wav", ".m4a", ".ogg"}
+                and p.name not in engelli]
     return str(random.choice(parcalar).resolve()) if parcalar else None
 
 

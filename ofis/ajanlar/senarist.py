@@ -70,26 +70,43 @@ KANCA_KALIPLARI = [
 
 
 YARIM_SON = {"but", "and", "or", "the", "a", "an", "of", "to", "is", "really", "that", "this", "from", "with", "for",
-             "in", "on", "at", "by", "about", "into", "than", "as", "ama", "ve", "ile",
-             "için", "bu", "çünkü"}
+             "in", "on", "at", "by", "about", "into", "than", "as", "has", "have", "had", "your", "my", "our",
+             "their", "his", "her", "its", "next", "new", "big", "will", "can", "could", "would", "just", "are",
+             "was", "were", "be", "not", "very", "so", "what", "who", "how", "why", "when", "where", "which",
+             "ama", "ve", "ile", "için", "bu", "çünkü", "bir", "çok", "en", "daha", "senin", "bizim"}
+KANCA_EN_COK = 7  # ekrandaki kanca en fazla 7 kelime (2026-11-28: 6'ya kesmek "Is AI toy safety a big" gibi yarım kanca üretti)
+
+
+def _kanca_temizle(metin: str) -> str:
+    return " ".join(str(metin or "").replace("#shorts", "").split()).strip().rstrip(",;:—-")
 
 
 def kanca_duzelt(s: dict[str, Any]) -> str:
-    """Ekrandaki kanca metni: en fazla 6 kelime. Yoksa başlıktan türetilir."""
-    kanca = str(s.get("kanca_metni") or "").replace("#shorts", "").strip()
+    """Ekrandaki kanca metni: en fazla 7 kelimelik TAM bir ifade. Uzunsa ilk cümle/yan cümle sınırından kesilir;
+    sınır yoksa (yarım kalacaksa) başlık kullanılır. Kanca yoksa başlıktan türetilir."""
+    kanca = _kanca_temizle(s.get("kanca_metni"))
+    baslik = _kanca_temizle(s.get("baslik"))
     if not kanca:
-        kanca = str(s.get("baslik", "")).replace("#shorts", "").strip()
-    kesildi = len(kanca.split()) > 6
-    sozler = kanca.split()[:6]
-    # yalnızca 6 kelimeye KESİLDİYSE "..., but" gibi yarım kalan son atılır; kısa ama yarım kanca yeniden yazdırılır
-    while kesildi and len(sozler) > 2 and (sozler[-1].lower().strip(".,!?…") in YARIM_SON or sozler[-2].endswith(",")):
+        kanca = baslik
+    sozler = kanca.split()
+    if len(sozler) <= KANCA_EN_COK:
+        return kanca
+    for i in range(KANCA_EN_COK - 1, 1, -1):  # "Your chats are for sale. Here's..." -> "Your chats are for sale."
+        if sozler[i].endswith((".", "!", "?", ",", ":", ";", "—")):
+            return " ".join(sozler[: i + 1]).rstrip(",;:—-")
+    if baslik and 2 <= len(baslik.split()) <= KANCA_EN_COK and baslik != kanca:
+        return baslik
+    sozler = sozler[:KANCA_EN_COK]
+    while len(sozler) > 2 and (sozler[-1].lower().strip(".,!?…") in YARIM_SON or sozler[-2].endswith(",")):
         sozler.pop()
     return " ".join(sozler).rstrip(",;:—-")
 
 
 ZAYIF_KANCALAR = ("you didn't know this", "you didn’t know this", "did you know", "watch this", "you won't believe",
                   "you won’t believe", "this is crazy", "wait for it", "check this out", "here's why", "here’s why",
-                  "you missed this", "bunu biliyor muydun", "bunu bilmiyordun")
+                  "you missed this", "are you ready", "is this the end", "what if i told you", "you think you're safe",
+                  "you think you’re safe", "don't miss this", "don’t miss this", "this changes everything",
+                  "bunu biliyor muydun", "bunu bilmiyordun", "buna hazır mısın")
 
 
 def zayif_kanca_mi(kanca: str) -> bool:
@@ -99,8 +116,8 @@ def zayif_kanca_mi(kanca: str) -> bool:
 
 
 def kanca_yarim_mi(kanca: str) -> bool:
-    sozler = str(kanca or "").replace("#shorts", "").split()
-    return not sozler or len(sozler) > 6 or sozler[-1].lower().strip(".,!?…") in YARIM_SON
+    sozler = _kanca_temizle(kanca).split()
+    return not sozler or len(sozler) > KANCA_EN_COK or sozler[-1].lower().strip(".,!?…") in YARIM_SON
 
 
 def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> list[str]:
@@ -114,8 +131,9 @@ def dogrula(s: dict[str, Any], k: dict[str, Any], tolerans: float = 0.85) -> lis
     if s.get("kanca_metni") and zayif_kanca_mi(str(s["kanca_metni"])):
         sorunlar.append("kanca_metni is generic; write a specific curiosity gap with a concrete detail from the "
                         "topic (a number, a name, a surprising outcome), 3-6 words")
-    if s.get("kanca_metni") and kanca_yarim_mi(kanca_duzelt(s)):  # uzun kanca temiz kısaltılır; yarımsa yeniden
-        sorunlar.append("kanca_metni must be a COMPLETE punchy phrase of 3-6 words, not cut off mid-sentence")
+    if s.get("kanca_metni") and (kanca_yarim_mi(kanca_duzelt(s))
+                                 or len(_kanca_temizle(s["kanca_metni"]).split()) > KANCA_EN_COK):
+        sorunlar.append("kanca_metni must be a COMPLETE punchy phrase of 3-7 words, not cut off mid-sentence")
     if not s.get("gorsel_kelimeler"):
         sorunlar.append("gorsel_kelimeler boş")
     if k.get("dil") == "en" and sum(c in "ğüşıöçĞÜŞİÖÇ" for c in str(s.get("baslik", "")) + str(s.get("senaryo", ""))) > 2:

@@ -304,7 +304,28 @@ def en_guclu_basa(sahneler: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [sahneler[en_iyi]] + [s for n, s in enumerate(sahneler) if n != en_iyi]
 
 
+def hareketli_dene(is_: Is, k: dict[str, Any]) -> bool:
+    """Kanal ayarı gorsel_modu: hareketli ise video tamamen kodla çizilen hareketli grafiklerden oluşur
+    (fotoğraf/stok yok, 0 TL, telif riski yok). Hata olursa eski görsel akışına düşülür."""
+    if k.get("gorsel_modu") != "hareketli" or is_.veri.get("mod") == "izinli_klip":
+        return False
+    from .. import hareketli
+    from .kurgu import ffmpeg_yolu
+
+    try:
+        sahne = hareketli.uret(is_.veri, k, is_.klasor, ffmpeg=ffmpeg_yolu())
+    except Exception as e:
+        log.warning("%s: hareketli grafik üretilemedi, fotoğraflı akışa dönülüyor: %s", is_.id, e)
+        return False
+    is_.veri.update({"sahneler": [sahne], "gorsel_modu": "hareketli",
+                     "lisanslar": ["Görseller: kanalın kendi ürettiği hareketli grafikler (kodla çizildi)"]})
+    log.info("%s: hareketli grafik hazır (%d sahne)", is_.id, len(sahne.get("plan", [])))
+    return True
+
+
 def topla(is_: Is, k: dict[str, Any]) -> None:
+    if hareketli_dene(is_, k):
+        return
     sahneler: list[dict[str, Any]] = []
     lisans: list[str] = []
     gorsel_klasoru = is_.klasor / "gorseller"

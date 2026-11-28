@@ -277,9 +277,23 @@ def ses_dizisi(ses_dosyasi: Path):
     return np.frombuffer(ham, np.int16).astype(np.float32) / 32768.0
 
 
+def sayi_parcalarini_birlestir(zamanlar: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Whisper sayıları böler ("17" ".4", "$15" ",000", "70" "%"): altyazıda "17 .4" görünmesin, tek kelime olsun."""
+    import re as _re
+
+    sonuc: list[dict[str, Any]] = []
+    for z in zamanlar:
+        w = str(z.get("kelime", ""))
+        if sonuc and _re.match(r"^\s*([.,]\d|%)", w) and _re.search(r"\d\s*$", str(sonuc[-1]["kelime"])):
+            sonuc[-1] = {**sonuc[-1], "kelime": str(sonuc[-1]["kelime"]).rstrip() + w.strip(), "son": z["son"]}
+        else:
+            sonuc.append(dict(z))
+    return sonuc
+
+
 def kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:
     with calisiyor(None, "sesi dinleyip altyazı için kelime zamanlarını çıkarıyor", yz="whisper"):
-        return _kelime_zamanlari(ses_dosyasi, dil)
+        return sayi_parcalarini_birlestir(_kelime_zamanlari(ses_dosyasi, dil))
 
 
 def _kelime_zamanlari(ses_dosyasi: Path, dil: str) -> list[dict[str, Any]]:

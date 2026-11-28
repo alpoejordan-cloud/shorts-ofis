@@ -201,6 +201,9 @@ def sahne_komutu(sahne: dict[str, Any], sure: float, cikis: str, hareket: str = 
         c0, c1 = sahne.get("renkler", ["0x0f2027", "0x2c5364"])
         kaynak = f"gradients=s={G}x{Y}:r={FPS}:c0={c0}:c1={c1}:speed=0.02:d={sure:.2f}"
         return ["-f", "lavfi", "-i", kaynak, "-t", f"{sure:.2f}", "-vf", "setsar=1,format=yuv420p", *KODLA, cikis]
+    if sahne.get("hareketli"):  # kendi çizdiğimiz tam boy video: kırpma/zoom yok, olduğu gibi
+        return ["-i", sahne["yol"], "-t", f"{sure:.2f}", "-vf", f"fps={FPS},scale={G}:{Y},setsar=1,format=yuv420p",
+                *KODLA, cikis]
     en, boy, kaynak_sure = olcu(sahne["yol"])
     if sahne["tur"] == "resim":
         # tek kare girdi + zoompan: kare kare akıcı Ken Burns (2x ölçekte, titremesiz)
@@ -403,6 +406,8 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
         plan = [{"sahne": klip, "tekrar": 0, "hareket": "yakin", "sure": sure, "gecis": "fade"}]
         if klip.get("orijinal_ses") and not is_.veri.get("yayinci_sesi"):
             klip_sesi =(str(Path(klip["yol"]).resolve()), float(klip["orijinal_ses"]))
+    elif sahneler and sahneler[0].get("hareketli"):  # hareketli grafik: sahneler zaten cümlelere göre kesildi
+        plan = [{"sahne": sahneler[0], "tekrar": 0, "hareket": "duz", "sure": sure, "gecis": "fade"}]
     else:
         plan = kesim_plani(sahneler, sure, float(k.get("kesme_sn", 2.4)), tohum=is_.id)
 
@@ -417,7 +422,7 @@ def kurgula(is_: Is, k: dict[str, Any]) -> None:
     calistir(birlestir_komutu(parcalar, plan, sure), klasor)
 
     gecis_sesi = None
-    anlar = gecis_anlari(plan)
+    anlar = gecis_anlari(plan) or [a for a in plan[0]["sahne"].get("gecisler", []) if 0 < a < sure - 0.3]
     if anlar and k.get("gecis_sesi", True):
         calistir(whoosh_komutu(anlar, sure), klasor)
         gecis_sesi = "gecis.wav"

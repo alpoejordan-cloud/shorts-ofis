@@ -206,6 +206,9 @@ Daha önce işlenen konular (tekrar etme):
 Analistin notları (neyin tuttuğu):
 {analist_notlari(k['id'])}
 
+Kanalın gerçek izlenme verisine göre konu tercihi (buna uy):
+{k.get('konu_tercihi', '(yok)')}
+
 En iyi {istenen} haberi seç. Taze haberi (son 24 saat) öne al; kanalın izleyicisinin merak edeceği
 haberleri seç. "konu" makalenin asıl konusunu aynı anahtar kelimelerle özetler.
 JSON biçimi:

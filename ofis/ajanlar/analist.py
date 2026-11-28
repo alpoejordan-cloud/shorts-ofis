@@ -56,7 +56,9 @@ def ozet(kanal_isleri: list[Is]) -> dict[str, Any]:
     formatlar: dict[str, list[int]] = defaultdict(list)
     kancalar: dict[str, list[int]] = defaultdict(list)
     kaynaklar: dict[str, list[int]] = defaultdict(list)
+    gorseller: dict[str, list[int]] = defaultdict(list)
     for i in olculen:
+        gorseller[i.veri.get("gorsel_modu", "fotograf")].append(izl(i))
         formatlar[i.veri.get("format", "?")].append(izl(i))
         if i.veri.get("kanca_kalibi"):
             kancalar[i.veri["kanca_kalibi"]].append(izl(i))
@@ -72,6 +74,7 @@ def ozet(kanal_isleri: list[Is]) -> dict[str, Any]:
         "format_ortalamalari": {f: round(mean(v)) for f, v in formatlar.items()},
         "kanca_ortalamalari": {f: round(mean(v)) for f, v in kancalar.items()},
         "kaynak_ortalamalari": {f: round(mean(v)) for f, v in kaynaklar.items()},
+        "gorsel_ortalamalari": {f: round(mean(v)) for f, v in gorseller.items()},
     }
     sonuc["oneriler"] = oneriler(sonuc)
     return sonuc
@@ -83,7 +86,7 @@ def oneriler(o: dict[str, Any], en_az: int = 3) -> list[str]:
         return ["Henüz yeterli veri yok (en az 3 ölçülen video); çeşitli format ve konular dene."]
     notlar = []
     for ad, anahtar in (("format", "format_ortalamalari"), ("kanca türü", "kanca_ortalamalari"),
-                        ("kaynak site", "kaynak_ortalamalari")):
+                        ("kaynak site", "kaynak_ortalamalari"), ("görsel türü", "gorsel_ortalamalari")):
         d = o.get(anahtar) or {}
         if len(d) >= 2:
             en_iyi, en_kotu = max(d, key=d.get), min(d, key=d.get)

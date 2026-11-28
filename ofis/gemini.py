@@ -197,6 +197,7 @@ def makaleleri_puanla(makaleler: list[dict[str, Any]], k: dict[str, Any]) -> lis
               "channel: broad curiosity, freshness, strong visual/hook potential, fit to the niche. Respond with JSON only.")
     kullanici = json.dumps({
         "channel_niche": k.get("nis"), "language": k.get("dil"),
+        "what_worked_on_this_channel": k.get("konu_tercihi", ""),
         "articles": [{"no": n + 1, "title": m.get("baslik"), "summary": str(m.get("ozet", ""))[:160],
                       "age_hours": m.get("yas_saat")} for n, m in enumerate(makaleler[:40])],
     }, ensure_ascii=False) + '\n\nJSON: {"siralama": [3, 1, 7, ...]}  (article numbers, best first, at least 15)'

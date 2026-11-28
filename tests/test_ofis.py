@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 import subprocess
 import wave
 from datetime import datetime, timedelta
@@ -147,7 +148,7 @@ def test_ai_gorsel_sahneleri_eklenir(monkeypatch, tmp_path):
     monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="gta_en", veri={"gorsel_kelimeler": ["a", "b", "c", "d", "e"]})
-    gorsel.topla(i, {**cekirdek.kanal("gta_en"), "resmi_havuz": False})  # yedek yol (havuz kapalı)
+    gorsel.topla(i, {**cekirdek.kanal("gta_en"), "resmi_havuz": False, "gorsel_modu": "fotograf"})  # yedek yol (havuz kapalı)
     assert [s["tur"] for s in i.veri["sahneler"]] == ["resim"] * 5
     assert i.veri["yapay_icerik"] is True
 
@@ -189,7 +190,7 @@ def test_gorsel_yoksa_renk_gecisi_eklenir(monkeypatch):
     monkeypatch.setattr(gorsel, "foto_adaylari", lambda kelime: [])
     monkeypatch.setattr(gorsel, "yerel_gorseller", lambda k: [])
     i = cekirdek.Is(kanal="teknoloji_en", veri={"gorsel_kelimeler": ["a"]})
-    gorsel.topla(i, cekirdek.kanal("teknoloji_en"))
+    gorsel.topla(i, {**cekirdek.kanal("teknoloji_en"), "gorsel_modu": "fotograf"})
     assert [s["tur"] for s in i.veri["sahneler"]] == ["desen"] * 4
 
 
@@ -202,7 +203,7 @@ def test_acik_resim_kredisi_aciklamaya_eklenir(monkeypatch, tmp_path):
          "lisans": "CC BY 2.0"}])
     monkeypatch.setattr(gorsel, "resim_indir", lambda url, hedef: hedef.write_bytes(b"x") or hedef)
     i = cekirdek.Is(kanal="teknoloji_en", veri={"gorsel_kelimeler": ["phone", "laptop"], "aciklama": "A"})
-    gorsel.topla(i, cekirdek.kanal("teknoloji_en"))
+    gorsel.topla(i, {**cekirdek.kanal("teknoloji_en"), "gorsel_modu": "fotograf"})
     assert [s["tur"] for s in i.veri["sahneler"]][:2] == ["resim", "resim"]
     assert "Image credits" in i.veri["aciklama"] and "CC BY 2.0" in i.veri["aciklama"]
 
@@ -385,8 +386,15 @@ def test_temizlik_ve_gunluk_ozet():
     assert "Günlük özet" in metin and "teknoloji_en" in metin
 
 
-def test_kanca_metni_alti_kelimeyi_gecmez():
-    assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six"
+def test_kanca_metni_yedi_kelimeyi_gecmez_ve_yarim_kalmaz():
+    assert senarist.kanca_duzelt({"kanca_metni": "one two three four five six seven"}) == "one two three four five six seven"
+    # 26.11 gerçek hata: "Is AI toy safety a big deal?" 6 kelimeye kesilip "...a big" diye ekrana çıktı
+    assert senarist.kanca_duzelt({"kanca_metni": "Is AI toy safety a big deal for parents?",
+                                  "baslik": "Why New York banned AI toys? #shorts"}) == "Why New York banned AI toys?"
+    assert senarist.kanca_duzelt({"kanca_metni": "Your chats are for sale. Here is who is buying them"}) == \
+        "Your chats are for sale."
+    assert senarist.kanca_yarim_mi("GTA 6 is taking over your")
+    assert senarist.kanca_yarim_mi("Are you ready for the next")
     assert senarist.kanca_duzelt({"baslik": "Big News Today #shorts"}) == "Big News Today"
 
 
@@ -630,8 +638,9 @@ def test_uzun_kanca_kisaltilir_yarimsa_reddedilir():
     from ofis.ajanlar import senarist
     k = {"kelime_araligi": [1, 50]}
     uzun = {"senaryo": "a b c", "baslik": "T", "gorsel_kelimeler": ["x"],
-            "kanca_metni": "GTA 6 hides a secret nobody found yet"}
+            "kanca_metni": "GTA 6 hides a secret nobody found"}
     assert senarist.dogrula(uzun, k) == []
+    assert senarist.dogrula({**uzun, "kanca_metni": "GTA 6 hides a secret that nobody has found yet"}, k)
     yarim = {**uzun, "kanca_metni": "Everyone thinks GTA is"}
     assert senarist.dogrula(yarim, k)
 
@@ -826,3 +835,50 @@ def test_resmi_havuz_son_kullanilanlari_sona_atar(tmp_path):
     ilk = [x["yol"] for x in resmi_havuz.sahneler_sec("Vice City", 4, klasor=tmp_path, tohum=1)]
     ikinci = [x["yol"] for x in resmi_havuz.sahneler_sec("Vice City", 4, klasor=tmp_path, tohum=1)]
     assert len(set(ilk) & set(ikinci)) < 4
+
+
+# ---- Hareketli grafik (2026-11-28: fotoğraf yerine kendi çizdiğimiz animasyon) ----
+def test_hareketli_sayi_onarimi_ve_sayac():
+    from ofis import hareketli
+    assert hareketli.metni_onar("Violators face $15 ,000 daily fines") == "Violators face $15,000 daily fines"
+    assert hareketli.metni_onar("with 70 % of consoles and 17 .4 hours") == "with 70% of consoles and 17.4 hours"
+    s = hareketli.sayi_bul("Over 39 million unique players have played it")
+    assert s["deger"] == 39 and s["son"] == " MILLION" and s["etiket"] == "UNIQUE PLAYERS"
+    assert hareketli.sayi_bul("GTA 6 just shattered records in 2026") is None  # ad içi sayı ve yıl sayaç olmaz
+    assert hareketli.sayi_bul("Violators face $15,000 daily fines")["on"] == "$"
+
+
+def test_hareketli_plan_cumle_basina_sahne_ve_ikon():
+    from ofis import hareketli
+    zaman, t = [], 0.0
+    metin = ("Is AI toy safety a big deal? New York banned AI chatbots in toys. "
+             "Violators face $15,000 daily fines. I think it's a win for kids.")
+    for w in metin.split():
+        zaman.append({"kelime": " " + w, "bas": t, "son": t + 0.3})
+        t += 0.32
+    plan = hareketli.plan_cikar(zaman, metin, t + 0.5, {"id": "teknoloji_en"})
+    assert [p["tur"] for p in plan] == ["kanca", "ikon", "sayi", "yorum"]
+    assert plan[0]["bas"] == 0 and plan[-1]["son"] >= t
+    assert plan[1]["ikon"] == "yasak" and "NEW YORK" in plan[1]["kelimeler"]
+    assert all(a["ikon"] != b["ikon"] for a, b in zip(plan, plan[1:]))  # aynı ikon art arda gelmez
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg yok")
+def test_hareketli_video_uretilir(tmp_path):
+    from ofis import hareketli
+    from ofis.ajanlar import kurgu
+    veri = {"sure": 1.4, "senaryo": "GTA 6 broke records. Over 39 million players joined.", "baslik": "x"}
+    sahne = hareketli.uret(veri, {"id": "gta_en", "en_uzun_sure": 58}, tmp_path)
+    assert sahne["hareketli"] and Path(sahne["yol"]).exists()
+    en, boy, sure = kurgu.olcu(sahne["yol"])
+    assert (en, boy) == (1080, 1920) and sure > 1.5
+    komut = kurgu.sahne_komutu(sahne, 1.5, str(tmp_path / "p.mp4"))
+    assert "zoompan" not in " ".join(komut)  # kendi videomuz kırpılmaz/zoomlanmaz
+
+
+def test_whisper_bolunmus_sayilar_birlesir():
+    z = [{"kelime": " is", "bas": 0, "son": 0.2}, {"kelime": " 17", "bas": 0.2, "son": 0.4},
+         {"kelime": ".4", "bas": 0.4, "son": 0.6}, {"kelime": " hours", "bas": 0.6, "son": 0.9},
+         {"kelime": " 70", "bas": 1.0, "son": 1.2}, {"kelime": "%", "bas": 1.2, "son": 1.3}]
+    sonuc = seslendirme.sayi_parcalarini_birlestir(z)
+    assert [w["kelime"] for w in sonuc] == [" is", " 17.4", " hours", " 70%"] and sonuc[1]["son"] == 0.6

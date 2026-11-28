@@ -31,6 +31,11 @@ kanallar:
       - "the hidden detail nobody talks about"
       - "before vs after"
     senarist_notu: "Explain like to a smart friend. Mention the source name once."
+    gorsel_modu: hareketli      # 2026-11-28: fotoğraf/stok yerine kendi çizdiğimiz hareketli grafikler (ofis/hareketli.py)
+    hareketli_tema: devre
+    # 2026-11-28 analizi (12 video): somut, izleyicinin hayatına dokunan konular 90-99 izlenme (sürücüsüz araç, AI oyuncak
+    # yasağı, AI asistan hataları); soyut gizlilik/güvenlik/şirket haberleri 25-48.
+    konu_tercihi: "Prefer concrete consumer-facing stories the viewer can picture or use: a product, app, phone, car, robot or AI tool people actually use, a surprising number, a ban that affects normal people. Avoid abstract corporate, regulatory, privacy-policy and cybersecurity-incident stories unless a famous product is directly affected."
     aciklama_eki: "Follow for daily AI & tech news in 30 seconds."
 
   - id: finans_tr
@@ -77,7 +82,7 @@ kanallar:
     kaynak_modlari: [haber_yorum, izinli_klip]   # izinli klip yoksa otomatik haber/yorum üretilir
     klip_orani: 0               # 2026-11-26 durduruldu: Dom kampanyası gönderime kapalı, ödeme Discord şartlı (TR'de kapalı)
     resmi_havuz: true           # görseller: Rockstar resmi medyası (gorseller/gta_resmi); Openverse/AI yalnız yedek
-    resmi_konu_orani: 0.25      # analytics 26.11: karakter formatı ort. 3 izlenme, haber/ipucu 500-900 -> az kullan
+    resmi_konu_orani: 0.0       # 28.11: karakter formatı 6-45 izlenme, haber/ipucu 500-900 -> kapalı
     hedef_gorsel: 12            # resmi havuzdan farklı görsel sayısı (tekrar olmasın)
     ai_gorsel_adedi: 4          # her videoya yapay zeka ile üretilen 4 sahne
     ai_stil: "open-world crime action game aesthetic, neon sunset city, cinematic, vertical, no logos, no text, original characters"
@@ -97,6 +102,11 @@ kanallar:
       - "context of the clip + why it is funny/impressive + what we learn"
       - "breakdown: what the streamer did right"
     senarist_notu: "Do not use in-game radio music. Never claim leaks are confirmed. Credit the streamer by name in permitted clips."
+    gorsel_modu: hareketli      # 2026-11-28: Rockstar resmi görselleri yerine kendi çizdiğimiz neon şehir hareketli grafikleri
+    hareketli_tema: neon_sehir
+    # 2026-11-28 analizi: GTA 6'nın kendisi + büyük rekor sayısı (39M oyuncu 913) ve oyunda kaçırılan somut şeyler
+    # (silahlar 537) tuttu; yan konular (Verstappen 1, Palworld 161), karakter biyografisi (6-45), soundtrack (20) tutmadı.
+    konu_tercihi: "Prefer stories about GTA 6 itself with a big concrete number or record, or a concrete in-game thing players can use right now (weapon, car, money method, secret location, easter egg). Avoid celebrity tie-ins, other games, soundtrack/merch news and character biography recaps."
 
   # GTA'yı Türkçe denemek için: bu kanalı aktif: true yap ve ayrı bir YouTube kanalına bağla.
   - id: gta_tr
